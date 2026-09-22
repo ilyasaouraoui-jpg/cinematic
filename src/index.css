@@ -1,0 +1,77 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400;500;600;700&family=Cinzel:wght@400;500;600;700;800;900&family=Pirata+One&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Cinzel", ui-serif, Georgia, serif;
+  --font-gothic: "Pirata One", "Cinzel", serif;
+
+  --color-ink-950: #05060a;
+  --color-ink-900: #080a12;
+  --color-ink-850: #0b0e18;
+  --color-ink-800: #101422;
+  --color-ink-700: #171c2e;
+  --color-ink-600: #222840;
+
+  --color-neon-300: #b79bff;
+  --color-neon-400: #9a7bff;
+  --color-neon-500: #7c4dff;
+  --color-neon-600: #6423ff;
+  --color-aqua-400: #45d7ff;
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    scrollbar-color: #2a2f45 transparent;
+  }
+  body {
+    background-color: var(--color-ink-950);
+    color: #e8e9f2;
+    font-family: var(--font-sans);
+    overflow-x: hidden;
+  }
+  ::selection {
+    background: var(--color-neon-500);
+    color: white;
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+  .glass {
+    background: linear-gradient(145deg, rgba(255,255,255,0.075), rgba(255,255,255,0.02));
+    backdrop-filter: blur(28px) saturate(140%);
+    -webkit-backdrop-filter: blur(28px) saturate(140%);
+    border: 1px solid rgba(255,255,255,0.10);
+  }
+
+  .glass-dark {
+    background: rgba(8, 10, 18, 0.72);
+    backdrop-filter: blur(24px) saturate(140%);
+    -webkit-backdrop-filter: blur(24px) saturate(140%);
+    border: 1px solid rgba(255,255,255,0.07);
+  }
+
+  .neon-glow {
+    box-shadow: 0 0 0 1px rgba(154,123,255,0.35), 0 8px 30px -6px rgba(100,35,255,0.55);
+  }
+
+  .text-glow {
+    text-shadow: 0 2px 40px rgba(0,0,0,0.9), 0 1px 4px rgba(0,0,0,0.8);
+  }
+
+  .mask-fade-r {
+    mask-image: linear-gradient(to right, black 88%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, black 88%, transparent 100%);
+  }
+}
+
+@keyframes aurora {
+  0%   { transform: translate3d(-8%, -4%, 0) scale(1); }
+  50%  { transform: translate3d(8%, 6%, 0) scale(1.15); }
+  100% { transform: translate3d(-8%, -4%, 0) scale(1); }
+}
+.animate-aurora { animation: aurora 18s ease-in-out infinite; }

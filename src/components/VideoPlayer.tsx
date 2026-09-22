@@ -1,0 +1,279 @@
+import { useEffect, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  Play,
+  Volume2,
+  Maximize2,
+  Subtitles,
+  Settings2,
+  X,
+  Check,
+  Languages,
+  AudioLines,
+  Type,
+} from "lucide-react";
+import { languages } from "../data";
+import { cn } from "../utils/cn";
+
+export function VideoPlayer({
+  open,
+  onClose,
+  embedUrl,
+  title = "",
+  season,
+  episode,
+}: {
+  open: boolean;
+  onClose: () => void;
+  embedUrl?: string | null;
+  title?: string;
+  season?: number;
+  episode?: number;
+}) {
+  const [panel, setPanel] = useState<null | "subs" | "quality">(null);
+  const [sub, setSub] = useState("en");
+  const [audio, setAudio] = useState("ja");
+  const [quality, setQuality] = useState("4K");
+  const [tab, setTab] = useState<"sub" | "audio">("sub");
+
+  useEffect(() => {
+    const k = (e: KeyboardEvent) => {
+      if (!open) return;
+      if (e.key === "Escape") {
+        e.preventDefault();
+        if (panel) setPanel(null);
+        else onClose();
+      }
+    };
+    window.addEventListener("keydown", k);
+    return () => window.removeEventListener("keydown", k);
+  }, [open, panel, onClose]);
+
+  useEffect(() => {
+    if (open) {
+      setPanel(null);
+    }
+  }, [open]);
+
+  const subLabel = languages.find((l) => l.code === sub)?.label ?? "Off";
+  const episodeLabel = season && episode ? `S${season} E${episode}` : "";
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[100] bg-black"
+        >
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.96, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 260, damping: 28 }}
+            className="absolute inset-0"
+          >
+            {embedUrl ? (
+              <iframe
+                src={embedUrl}
+                className="absolute inset-0 h-full w-full border-0"
+                allowFullScreen
+                allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+                title={title || "Video Player"}
+              />
+            ) : (
+              <div className="absolute inset-0 grid place-items-center bg-ink-950">
+                <div className="text-center">
+                  <Play className="mx-auto h-16 w-16 text-white/20" />
+                  <p className="mt-4 text-white/40">No video available</p>
+                </div>
+              </div>
+            )}
+
+            <div className="absolute inset-x-0 top-0 z-30 flex items-start justify-between bg-gradient-to-b from-black/80 via-black/30 to-transparent p-4 md:p-6 pointer-events-none">
+              <div className="pointer-events-auto">
+                {episodeLabel && (
+                  <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-neon-300">
+                    {episodeLabel}
+                  </p>
+                )}
+                <h2 className="mt-1 font-display text-2xl text-white md:text-3xl">{title}</h2>
+              </div>
+              <button
+                onClick={onClose}
+                className="pointer-events-auto grid h-10 w-10 place-items-center rounded-full border border-white/15 bg-black/40 text-white/80 backdrop-blur-md transition hover:bg-white/15 hover:text-white"
+              >
+                <X className="h-[18px] w-[18px]" />
+              </button>
+            </div>
+
+            <div className="absolute inset-x-0 bottom-0 z-30 bg-gradient-to-t from-black via-black/60 to-transparent px-4 pb-5 pt-16 md:px-7 md:pb-6 pointer-events-none">
+              <div className="pointer-events-auto flex items-center gap-1.5 md:gap-3">
+                <button
+                  onClick={() => setPanel(panel === "subs" ? null : "subs")}
+                  className={cn(
+                    "flex items-center gap-2 rounded-xl border px-2.5 py-2 text-[12px] font-medium transition md:px-3.5",
+                    panel === "subs"
+                      ? "border-neon-400/60 bg-neon-500/25 text-white neon-glow"
+                      : "border-white/12 bg-white/[0.07] text-white/80 hover:bg-white/15"
+                  )}
+                >
+                  <Subtitles className="h-[17px] w-[17px]" />
+                  <span className="hidden sm:inline">{subLabel}</span>
+                </button>
+
+                <button
+                  onClick={() => setPanel(panel === "quality" ? null : "quality")}
+                  className={cn(
+                    "flex items-center gap-2 rounded-xl border px-2.5 py-2 text-[12px] font-medium transition md:px-3.5",
+                    panel === "quality"
+                      ? "border-neon-400/60 bg-neon-500/25 text-white neon-glow"
+                      : "border-white/12 bg-white/[0.07] text-white/80 hover:bg-white/15"
+                  )}
+                >
+                  <Settings2 className="h-[17px] w-[17px]" />
+                </button>
+
+                <button className="grid h-9 w-9 place-items-center rounded-full text-white/75 hover:bg-white/12 hover:text-white md:h-10 md:w-10">
+                  <Volume2 className="h-[18px] w-[18px]" />
+                </button>
+
+                <div className="ml-auto">
+                  <button className="grid h-9 w-9 place-items-center rounded-full text-white/75 hover:bg-white/12 hover:text-white md:h-10 md:w-10">
+                    <Maximize2 className="h-[18px] w-[18px]" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <AnimatePresence>
+              {panel === "subs" && (
+                <>
+                  <motion.div
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    onClick={() => setPanel(null)}
+                    className="absolute inset-0 z-40 bg-black/45"
+                  />
+                  <motion.div
+                    initial={{ opacity: 0, y: 28, scale: 0.97 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 22, scale: 0.97 }}
+                    transition={{ type: "spring", stiffness: 320, damping: 30 }}
+                    className="absolute bottom-24 right-3 left-3 z-50 overflow-hidden rounded-[22px] glass-dark shadow-[0_30px_80px_-16px_rgba(0,0,0,0.95)] sm:left-auto sm:w-[460px] md:bottom-28 md:right-7"
+                  >
+                    <div className="relative border-b border-white/[0.07] px-5 pb-3 pt-4">
+                      <div className="relative flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                          <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-neon-400 to-neon-600 text-white">
+                            <Languages className="h-[18px] w-[18px]" />
+                          </span>
+                          <div>
+                            <h3 className="text-[14.5px] font-semibold text-white">Subtitles & Audio</h3>
+                            <p className="text-[11px] text-white/45">Multi-language support</p>
+                          </div>
+                        </div>
+                        <button onClick={() => setPanel(null)} className="grid h-8 w-8 place-items-center rounded-full text-white/50 hover:bg-white/10 hover:text-white">
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+
+                      <div className="relative mt-4 flex rounded-xl bg-white/[0.05] p-1">
+                        {([["sub", "Subtitles", Type], ["audio", "Audio", AudioLines]] as const).map(([k, l, Ic]) => (
+                          <button
+                            key={k}
+                            onClick={() => setTab(k)}
+                            className="relative flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-[12.5px] font-medium"
+                          >
+                            {tab === k && (
+                              <motion.span layoutId="subtab" transition={{ type: "spring", stiffness: 400, damping: 32 }}
+                                className="absolute inset-0 rounded-lg bg-gradient-to-br from-neon-500/50 to-neon-600/25 ring-1 ring-neon-400/40" />
+                            )}
+                            <Ic className={cn("relative h-4 w-4", tab === k ? "text-white" : "text-white/45")} />
+                            <span className={cn("relative", tab === k ? "text-white" : "text-white/50")}>{l}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="no-scrollbar max-h-[42vh] overflow-y-auto p-2.5 md:max-h-[320px]">
+                      <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
+                        {languages.map((l) => {
+                          const selected = tab === "sub" ? sub === l.code : audio === l.code;
+                          if (tab === "audio" && l.code === "off") return null;
+                          return (
+                            <motion.button
+                              key={l.code}
+                              whileHover={{ x: 3 }}
+                              onClick={() => (tab === "sub" ? setSub(l.code) : setAudio(l.code))}
+                              className={cn(
+                                "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors",
+                                selected ? "bg-neon-500/20 ring-1 ring-neon-400/40" : "hover:bg-white/[0.06]"
+                              )}
+                            >
+                              <span className="text-[17px] leading-none">{l.flag}</span>
+                              <span className="min-w-0 flex-1">
+                                <span className={cn("block truncate text-[13px] font-medium", selected ? "text-white" : "text-white/80")}>
+                                  {l.label}
+                                </span>
+                                <span className="block truncate text-[10.5px] text-white/40">{l.native}</span>
+                              </span>
+                              {selected ? (
+                                <motion.span initial={{ scale: 0.4 }} animate={{ scale: 1 }}
+                                  className="grid h-5 w-5 place-items-center rounded-full bg-neon-500 text-white">
+                                  <Check className="h-3 w-3" strokeWidth={3} />
+                                </motion.span>
+                              ) : (
+                                <span className="h-5 w-5 rounded-full border border-white/15 opacity-0 transition-opacity group-hover:opacity-100" />
+                              )}
+                            </motion.button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between border-t border-white/[0.07] px-4 py-3">
+                      <p className="text-[11px] text-white/40">
+                        {tab === "sub" ? "Subtitles" : "Audio"}:{" "}
+                        <span className="text-neon-300">
+                          {(tab === "sub" ? languages.find((l) => l.code === sub) : languages.find((l) => l.code === audio))?.label}
+                        </span>
+                      </p>
+                      <button onClick={() => setPanel(null)}
+                        className="rounded-full bg-gradient-to-br from-neon-400 to-neon-600 px-4 py-1.5 text-[12px] font-semibold text-white neon-glow">
+                        Done
+                      </button>
+                    </div>
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+
+            <AnimatePresence>
+              {panel === "quality" && (
+                <>
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    onClick={() => setPanel(null)} className="absolute inset-0 z-40" />
+                  <motion.div
+                    initial={{ opacity: 0, y: 16, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 12, scale: 0.97 }}
+                    className="absolute bottom-24 right-3 z-50 w-56 rounded-2xl glass-dark p-2 shadow-2xl md:bottom-28 md:right-7"
+                  >
+                    <p className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-white/40">Quality</p>
+                    {["4K HDR", "1080p", "720p", "Auto"].map((q) => (
+                      <button key={q} onClick={() => { setQuality(q); setPanel(null); }}
+                        className={cn("flex w-full items-center justify-between rounded-xl px-3 py-2 text-[12.5px] transition-colors hover:bg-white/[0.07]",
+                          quality === q || quality === q.split(" ")[0] ? "text-white" : "text-white/70")}>
+                        {q}
+                        {(quality === q || quality === q.split(" ")[0]) && <Check className="h-3.5 w-3.5 text-neon-400" strokeWidth={3} />}
+                      </button>
+                    ))}
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}

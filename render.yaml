@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: cinematic-backend
+    runtime: node
+    buildCommand: npm install && cd backend && npm install && cd .. && npx vite build && cp -r dist backend/public
+    startCommand: cd backend && node server.js
+    envVars:
+      - key: TMDB_API_KEY
+        value: b506e6994b6370b0c67ca2a3aab45346
+      - key: TMDB_BASE_URL
+        value: https://api.themoviedb.org/3
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CLIENT_URL
+        sync: false
