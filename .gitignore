@@ -1,0 +1,10 @@
+node_modules/
+dist/
+backend/node_modules/
+backend/public/
+backend/.env
+.vercel/
+*.log
+.DS_Store
+
+.vercel
