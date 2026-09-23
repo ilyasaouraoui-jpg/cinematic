@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Play,
@@ -14,6 +14,22 @@ import {
 } from "lucide-react";
 import { languages } from "../data";
 import { cn } from "../utils/cn";
+
+const IFRAME_SANDBOX = "allow-scripts allow-same-origin allow-presentation";
+
+function cleanEmbedUrl(raw: string): string {
+  try {
+    const url = new URL(raw);
+    if (!/vidsrc\.(to|cc|pro)$/.test(url.hostname)) return raw;
+    const parts = url.pathname.split("/").filter(Boolean);
+    if (parts[0] !== "embed") return raw;
+    url.search = "";
+    url.searchParams.set("autoPlay", "1");
+    return url.toString();
+  } catch {
+    return raw;
+  }
+}
 
 export function VideoPlayer({
   open,
@@ -35,6 +51,9 @@ export function VideoPlayer({
   const [audio, setAudio] = useState("ja");
   const [quality, setQuality] = useState("4K");
   const [tab, setTab] = useState<"sub" | "audio">("sub");
+  const [started, setStarted] = useState(false);
+
+  const src = useMemo(() => (embedUrl ? cleanEmbedUrl(embedUrl) : null), [embedUrl]);
 
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
@@ -52,8 +71,9 @@ export function VideoPlayer({
   useEffect(() => {
     if (open) {
       setPanel(null);
+      setStarted(false);
     }
-  }, [open]);
+  }, [open, embedUrl]);
 
   const subLabel = languages.find((l) => l.code === sub)?.label ?? "Off";
   const episodeLabel = season && episode ? `S${season} E${episode}` : "";
@@ -74,14 +94,39 @@ export function VideoPlayer({
             transition={{ type: "spring", stiffness: 260, damping: 28 }}
             className="absolute inset-0"
           >
-            {embedUrl ? (
-              <iframe
-                src={embedUrl}
-                className="absolute inset-0 h-full w-full border-0"
-                allowFullScreen
-                allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
-                title={title || "Video Player"}
-              />
+            {src ? (
+              started ? (
+                <iframe
+                  src={src}
+                  referrerPolicy="no-referrer"
+                  sandbox={IFRAME_SANDBOX}
+                  className="absolute inset-0 h-full w-full border-0"
+                  allowFullScreen
+                  allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+                  title={title || "Video Player"}
+                />
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setStarted(true)}
+                  className="group absolute inset-0 grid place-items-center bg-ink-950"
+                >
+                  <span className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,black_75%)] opacity-60" />
+                  <span className="relative flex flex-col items-center gap-5">
+                    <span className="grid h-20 w-20 place-items-center rounded-full border border-white/20 bg-white/10 backdrop-blur-md transition-all duration-300 group-hover:scale-110 group-hover:border-neon-400/70 group-hover:bg-neon-500/25 group-hover:shadow-[0_0_50px_rgba(124,77,255,0.45)]">
+                      <Play className="ml-1 h-9 w-9 text-white" fill="currentColor" />
+                    </span>
+                    <span className="text-[13px] font-medium uppercase tracking-[0.28em] text-white/50 transition-colors group-hover:text-white/85">
+                      Click to Play
+                    </span>
+                    {season && episode && (
+                      <span className="text-[11px] text-neon-300/80">
+                        S{season} E{episode}
+                      </span>
+                    )}
+                  </span>
+                </button>
+              )
             ) : (
               <div className="absolute inset-0 grid place-items-center bg-ink-950">
                 <div className="text-center">
