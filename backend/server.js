@@ -6,7 +6,10 @@ const connectDB = require("./config/db");
 
 dotenv.config();
 
-connectDB();
+const dbReady = () => connectDB().catch((err) => {
+  console.error("DB connection failed:", err.message);
+  throw err;
+});
 
 const app = express();
 
@@ -16,13 +19,18 @@ app.use(cors({
 }));
 app.use(express.json());
 
-app.use("/api/auth", require("./routes/authRoutes"));
+app.use("/api/auth", async (req, res, next) => {
+  try { await dbReady(); next(); } catch (e) { next(e); }
+}, require("./routes/authRoutes"));
 app.use("/api/tmdb", require("./routes/tmdbRoutes"));
-app.use("/api/watchlist", require("./routes/watchlistRoutes"));
+app.use("/api/watchlist", async (req, res, next) => {
+  try { await dbReady(); next(); } catch (e) { next(e); }
+}, require("./routes/watchlistRoutes"));
 
 const clientBuild = path.join(__dirname, "public");
 app.use(express.static(clientBuild));
-app.get("*", (req, res) => {
+app.use((req, res, next) => {
+  if (req.method !== "GET" || req.path.startsWith("/api")) return next();
   res.sendFile(path.join(clientBuild, "index.html"));
 });
 
@@ -34,6 +42,11 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+}
+
+module.exports = app;
