@@ -52,6 +52,7 @@ export function VideoPlayer({
   const [quality, setQuality] = useState("4K");
   const [tab, setTab] = useState<"sub" | "audio">("sub");
   const [started, setStarted] = useState(false);
+  const [shield, setShield] = useState(false);
 
   const src = useMemo(() => (embedUrl ? cleanEmbedUrl(embedUrl) : null), [embedUrl]);
 
@@ -72,8 +73,29 @@ export function VideoPlayer({
     if (open) {
       setPanel(null);
       setStarted(false);
+      setShield(false);
     }
   }, [open, embedUrl]);
+
+  const handleStart = () => {
+    setStarted(true);
+    setShield(true);
+  };
+
+  const absorbFirstClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setShield(false);
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    const originalOpen = window.open;
+    window.open = () => null;
+    return () => {
+      window.open = originalOpen;
+    };
+  }, [open]);
 
   const subLabel = languages.find((l) => l.code === sub)?.label ?? "Off";
   const episodeLabel = season && episode ? `S${season} E${episode}` : "";
@@ -96,19 +118,30 @@ export function VideoPlayer({
           >
             {src ? (
               started ? (
-                <iframe
-                  src={src}
-                  referrerPolicy="no-referrer"
-                  sandbox={IFRAME_SANDBOX}
-                  className="absolute inset-0 h-full w-full border-0"
-                  allowFullScreen
-                  allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
-                  title={title || "Video Player"}
-                />
+                <>
+                  <iframe
+                    src={src}
+                    referrerPolicy="no-referrer"
+                    sandbox={IFRAME_SANDBOX}
+                    className="absolute inset-0 h-full w-full border-0"
+                    allowFullScreen
+                    allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+                    title={title || "Video Player"}
+                  />
+                  {shield && (
+                    <div
+                      onClick={absorbFirstClick}
+                      onPointerDown={absorbFirstClick}
+                      onContextMenu={(e) => e.preventDefault()}
+                      className="absolute inset-0 z-20 cursor-pointer bg-transparent"
+                      aria-hidden="true"
+                    />
+                  )}
+                </>
               ) : (
                 <button
                   type="button"
-                  onClick={() => setStarted(true)}
+                  onClick={handleStart}
                   className="group absolute inset-0 grid place-items-center bg-ink-950"
                 >
                   <span className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,black_75%)] opacity-60" />
