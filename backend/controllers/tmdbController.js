@@ -51,9 +51,9 @@ const mapTvResult = (m) => ({
 
 const generateEmbedUrl = (tmdbId, mediaType, season, episode) => {
   if (mediaType === "tv" && season && episode) {
-    return `https://vidlink.pro/tv/${tmdbId}/${season}/${episode}`;
+    return `https://vidsrc.to/embed/tv/${tmdbId}/${season}/${episode}`;
   }
-  return `https://vidlink.pro/movie/${tmdbId}`;
+  return `https://vidsrc.to/embed/movie/${tmdbId}`;
 };
 
 const searchMulti = async (req, res) => {
@@ -294,7 +294,7 @@ const getSeasons = async (req, res) => {
 const getEpisodeEmbed = async (req, res) => {
   try {
     const { tmdbId, season, episode } = req.params;
-    const embedUrl = `https://vidlink.pro/tv/${tmdbId}/${season}/${episode}`;
+    const embedUrl = `https://vidsrc.to/embed/tv/${tmdbId}/${season}/${episode}`;
     res.json({ embed_url: embedUrl, season: Number(season), episode: Number(episode) });
   } catch (error) {
     res.status(500).json({ message: "Failed to generate embed URL", error: error.message });

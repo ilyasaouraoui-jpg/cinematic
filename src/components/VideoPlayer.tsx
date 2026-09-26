@@ -23,7 +23,7 @@ const IFRAME_SANDBOX = "allow-scripts allow-same-origin allow-presentation";
 const SHIELD_MIN_MS = 1800;
 
 const ALLOWED_HOSTS =
-  /^(vidlink\.pro|www\.2embed\.stream|2embed\.stream|vidsrc\.(to|cc|pro|xyz))$/;
+  /^(vidsrc\.(to|cc|pro|xyz)|vidcore\.org|multiembed\.mov|streamingnow\.mov)$/;
 
 type EmbedInfo = {
   type: "movie" | "tv";
@@ -41,24 +41,6 @@ type Provider = {
 
 const PROVIDERS: Provider[] = [
   {
-    id: "vidlink",
-    label: "VidLink",
-    note: "Ad-free",
-    build: (i) =>
-      i.type === "tv"
-        ? `https://vidlink.pro/tv/${i.id}/${i.season ?? 1}/${i.episode ?? 1}`
-        : `https://vidlink.pro/movie/${i.id}`,
-  },
-  {
-    id: "2embed",
-    label: "2Embed",
-    note: "Backup",
-    build: (i) =>
-      i.type === "tv"
-        ? `https://www.2embed.stream/embed/tv/${i.id}/${i.season ?? 1}/${i.episode ?? 1}`
-        : `https://www.2embed.stream/embed/movie/${i.id}`,
-  },
-  {
     id: "vidsrc",
     label: "VidSrc",
     note: "Classic",
@@ -66,6 +48,24 @@ const PROVIDERS: Provider[] = [
       i.type === "tv"
         ? `https://vidsrc.to/embed/tv/${i.id}/${i.season ?? 1}/${i.episode ?? 1}`
         : `https://vidsrc.to/embed/movie/${i.id}`,
+  },
+  {
+    id: "vidcore",
+    label: "VidCore",
+    note: "Fast",
+    build: (i) =>
+      i.type === "tv"
+        ? `https://vidcore.org/embed/tv/${i.id}/${i.season ?? 1}/${i.episode ?? 1}`
+        : `https://vidcore.org/embed/movie/${i.id}`,
+  },
+  {
+    id: "multiembed",
+    label: "MultiEmbed",
+    note: "Alt",
+    build: (i) =>
+      i.type === "tv"
+        ? `https://multiembed.mov/?video_id=${i.id}&tmdb=1&s=${i.season ?? 1}&e=${i.episode ?? 1}`
+        : `https://multiembed.mov/?video_id=${i.id}&tmdb=1`,
   },
 ];
 
@@ -113,9 +113,10 @@ function cleanEmbedUrl(raw: string): string {
   try {
     const url = new URL(raw);
     if (!ALLOWED_HOSTS.test(url.hostname)) return raw;
-    const keepParams = new URLSearchParams();
-    if (url.hostname.includes("vidsrc")) keepParams.set("autoPlay", "1");
-    url.search = keepParams.toString();
+    if (url.hostname.includes("vidsrc")) {
+      url.search = "";
+      url.searchParams.set("autoPlay", "1");
+    }
     return url.toString();
   } catch {
     return raw;
