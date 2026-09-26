@@ -69,7 +69,7 @@ export function DetailModal({
   const handlePlayEpisode = (ep: TMDBEpisode) => {
     const epNum = parseInt(ep.Episode);
     if (onPlayEmbed && item) {
-      const url = `https://vidsrc.to/embed/tv/${item.id}/${selectedSeason}/${epNum}`;
+      const url = `https://vidlink.pro/tv/${item.id}/${selectedSeason}/${epNum}`;
       onPlayEmbed(url, `${item.name} - S${selectedSeason}E${epNum}`, selectedSeason, epNum);
     } else if (onPlayEpisode) {
       onPlayEpisode(selectedSeason, epNum);
