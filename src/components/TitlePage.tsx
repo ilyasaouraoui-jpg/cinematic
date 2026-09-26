@@ -130,7 +130,7 @@ export function TitlePage({
   const handlePlayEpisode = (ep: TMDBEpisode) => {
     const epNum = parseInt(ep.Episode);
     if (id) {
-      const url = `https://vidlink.pro/tv/${id}/${selectedSeason}/${epNum}`;
+      const url = `https://vidsrc.to/embed/tv/${id}/${selectedSeason}/${epNum}`;
       setActiveEmbedUrl(url);
       setPlaying(true);
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -143,7 +143,7 @@ export function TitlePage({
       if (mediaType === "tv" && episodes.length > 0) {
         handlePlayEpisode(episodes[0]);
       } else {
-        const url = details.embed_url || `https://vidlink.pro/movie/${id}`;
+        const url = details.embed_url || `https://vidsrc.to/embed/movie/${id}`;
         setActiveEmbedUrl(url);
         setPlaying(true);
         window.scrollTo({ top: 0, behavior: "smooth" });
