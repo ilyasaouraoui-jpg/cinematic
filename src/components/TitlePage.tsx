@@ -2,12 +2,11 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowLeft, Play, Plus, Check, Share2, Star, ChevronDown, Loader2, Clock, Tv,
+  ArrowLeft, Play, Plus, Check, Share2, Star, ChevronDown, Loader2, Clock, Tv, X,
 } from "lucide-react";
 import { tmdbAPI, type TMDBDetails, type TMDBSeason, type TMDBEpisode, type TMDBTitle, tmdbToTitle } from "../api";
 import type { Title } from "../data";
 import { PosterCard } from "./PosterCard";
-import { VideoPlayer } from "./VideoPlayer";
 import { cn } from "../utils/cn";
 import { useWatchlist, type WatchlistItem } from "../context/WatchlistContext";
 
@@ -31,7 +30,6 @@ export function TitlePage({
   const [similarLoading, setSimilarLoading] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [activeEmbedUrl, setActiveEmbedUrl] = useState<string | null>(null);
-  const [activeEpisode, setActiveEpisode] = useState<number | undefined>(undefined);
 
   const mediaType = type === "tv" ? "tv" : "movie";
 
@@ -132,20 +130,24 @@ export function TitlePage({
   const handlePlayEpisode = (ep: TMDBEpisode) => {
     const epNum = parseInt(ep.Episode);
     if (id) {
-      setActiveEmbedUrl(`https://vidsrc.to/embed/tv/${id}/${selectedSeason}/${epNum}`);
-      setActiveEpisode(epNum);
+      const url = `https://vidsrc.to/embed/tv/${id}/${selectedSeason}/${epNum}`;
+      setActiveEmbedUrl(url);
       setPlaying(true);
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
 
   const handlePlayAll = () => {
-    if (!details || !id) return;
-    if (mediaType === "tv" && episodes.length > 0) {
-      handlePlayEpisode(episodes[0]);
-    } else {
-      setActiveEmbedUrl(details.embed_url || `https://vidsrc.to/embed/movie/${id}`);
-      setActiveEpisode(undefined);
-      setPlaying(true);
+    if (!details) return;
+    if (id) {
+      if (mediaType === "tv" && episodes.length > 0) {
+        handlePlayEpisode(episodes[0]);
+      } else {
+        const url = details.embed_url || `https://vidsrc.to/embed/movie/${id}`;
+        setActiveEmbedUrl(url);
+        setPlaying(true);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
     }
   };
 
@@ -227,18 +229,46 @@ export function TitlePage({
         </div>
       </div>
 
-      {/* Video Player — fullscreen modal with ad shield, no-referrer and window.open kill */}
-      <VideoPlayer
-        open={playing && !!activeEmbedUrl}
-        onClose={() => {
-          setPlaying(false);
-          setActiveEmbedUrl(null);
-        }}
-        embedUrl={activeEmbedUrl}
-        title={details?.title}
-        season={mediaType === "tv" ? selectedSeason : undefined}
-        episode={activeEpisode}
-      />
+      {/* Video Player — order-2: Below movie info, above details */}
+      <AnimatePresence>
+        {playing && activeEmbedUrl && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+            className="relative w-full overflow-hidden bg-black"
+          >
+            <div className="mx-auto w-full" style={{ maxWidth: "1200px" }}>
+              <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
+                <iframe
+                  src={activeEmbedUrl}
+                  className="absolute inset-0 h-full w-full border-0"
+                  allowFullScreen
+                  allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+                  title={details.title}
+                />
+              </div>
+            </div>
+            <div className="absolute inset-x-0 top-0 flex items-start justify-between bg-gradient-to-b from-black/60 via-transparent to-transparent p-4 md:p-6 pointer-events-none">
+              <button onClick={() => navigate(-1)} className="pointer-events-auto grid h-10 w-10 place-items-center rounded-full border border-white/15 bg-black/40 text-white/80 backdrop-blur-md transition hover:bg-white/15 hover:text-white md:left-8">
+                <ArrowLeft className="h-5 w-5" />
+              </button>
+              <button onClick={() => { setPlaying(false); setActiveEmbedUrl(null); }} className="pointer-events-auto grid h-10 w-10 place-items-center rounded-full border border-white/15 bg-black/40 text-white/80 backdrop-blur-md transition hover:bg-white/15 hover:text-white">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="absolute inset-x-0 bottom-0 flex items-end justify-between bg-gradient-to-t from-black/80 via-black/30 to-transparent p-4 md:p-6 pointer-events-none">
+              <div className="pointer-events-auto">
+                <p className="font-display text-xl text-white md:text-2xl">{details.title}</p>
+                {mediaType === "tv" && (
+                  <p className="mt-1 text-sm text-neon-300">Season {selectedSeason}</p>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Details Section — order-3: Cast, metadata, episodes, recommendations */}
       <div className="relative z-10 px-5 pb-16 md:px-12 lg:px-16">
