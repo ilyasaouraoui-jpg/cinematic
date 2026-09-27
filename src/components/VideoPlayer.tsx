@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Play,
@@ -11,15 +11,9 @@ import {
   Languages,
   AudioLines,
   Type,
-  ShieldCheck,
 } from "lucide-react";
 import { languages } from "../data";
 import { cn } from "../utils/cn";
-
-type NativeEvent = Event & { stopImmediatePropagation(): void };
-
-const IFRAME_SANDBOX = "allow-scripts allow-same-origin allow-presentation";
-const SHIELD_MIN_MS = 1800;
 
 function cleanEmbedUrl(raw: string): string {
   try {
@@ -28,7 +22,6 @@ function cleanEmbedUrl(raw: string): string {
     const parts = url.pathname.split("/").filter(Boolean);
     if (parts[0] !== "embed") return raw;
     url.search = "";
-    url.searchParams.set("autoPlay", "1");
     return url.toString();
   } catch {
     return raw;
@@ -56,9 +49,6 @@ export function VideoPlayer({
   const [quality, setQuality] = useState("4K");
   const [tab, setTab] = useState<"sub" | "audio">("sub");
   const [started, setStarted] = useState(false);
-  const [shield, setShield] = useState(false);
-  const shieldArmedAt = useRef(0);
-  const absorbedRef = useRef(0);
 
   const src = useMemo(() => (embedUrl ? cleanEmbedUrl(embedUrl) : null), [embedUrl]);
 
@@ -79,53 +69,10 @@ export function VideoPlayer({
     if (open) {
       setPanel(null);
       setStarted(false);
-      setShield(false);
-      absorbedRef.current = 0;
     }
   }, [open, embedUrl]);
 
-  const handleStart = () => {
-    setStarted(true);
-    setShield(true);
-    absorbedRef.current = 0;
-    shieldArmedAt.current = Date.now();
-  };
-
-  const absorbClick = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    (e.nativeEvent as NativeEvent).stopImmediatePropagation();
-    absorbedRef.current += 1;
-    const elapsed = Date.now() - shieldArmedAt.current;
-    if (elapsed >= SHIELD_MIN_MS && absorbedRef.current >= 1) {
-      setShield(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!shield) return;
-    const t = setTimeout(() => {
-      if (Date.now() - shieldArmedAt.current >= SHIELD_MIN_MS) setShield(false);
-    }, SHIELD_MIN_MS + 150);
-    return () => clearTimeout(t);
-  }, [shield]);
-
-  useEffect(() => {
-    if (!open) return;
-    const blocked = () => null;
-    const originalOpen = window.open;
-    window.open = blocked;
-    const blockTopNav = (e: Event) => {
-      e.preventDefault();
-      e.stopPropagation();
-      return false;
-    };
-    window.addEventListener("beforeunload", blockTopNav);
-    return () => {
-      window.open = originalOpen;
-      window.removeEventListener("beforeunload", blockTopNav);
-    };
-  }, [open]);
+  const handleStart = () => setStarted(true);
 
   const subLabel = languages.find((l) => l.code === sub)?.label ?? "Off";
   const episodeLabel = season && episode ? `S${season} E${episode}` : "";
@@ -152,34 +99,11 @@ export function VideoPlayer({
                   <iframe
                     src={src}
                     referrerPolicy="no-referrer"
-                    sandbox={IFRAME_SANDBOX}
-                    className={cn(
-                      "absolute inset-0 h-full w-full border-0 transition-opacity",
-                      shield ? "pointer-events-none opacity-40" : "opacity-100"
-                    )}
+                    className="absolute inset-0 h-full w-full border-0"
                     allowFullScreen
                     allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
                     title={title || "Video Player"}
                   />
-                  {shield && (
-                    <div
-                      onClick={absorbClick}
-                      onPointerDown={absorbClick}
-                      onPointerUp={(e) => e.stopPropagation()}
-                      onContextMenu={(e) => e.preventDefault()}
-                      className="absolute inset-0 z-20 cursor-pointer bg-black/30 backdrop-blur-[1px]"
-                      aria-hidden="true"
-                    >
-                      <div className="absolute inset-0 grid place-items-center">
-                        <div className="flex flex-col items-center gap-3">
-                          <ShieldCheck className="h-8 w-8 animate-pulse text-neon-300" />
-                          <span className="text-[11px] font-medium uppercase tracking-[0.25em] text-white/60">
-                            Blocking ads…
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
                 </>
               ) : (
                 <button
