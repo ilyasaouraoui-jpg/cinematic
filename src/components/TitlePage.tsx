@@ -227,7 +227,7 @@ export function TitlePage({
         </div>
       </div>
 
-      {/* Video Player — fullscreen modal with full ad protection (sandbox, shield, no-referrer, window.open kill) */}
+      {/* Video Player — fullscreen modal with ad shield, no-referrer and window.open kill */}
       <VideoPlayer
         open={playing && !!activeEmbedUrl}
         onClose={() => {

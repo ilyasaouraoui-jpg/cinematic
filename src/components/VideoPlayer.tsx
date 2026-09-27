@@ -18,7 +18,6 @@ import { cn } from "../utils/cn";
 
 type NativeEvent = Event & { stopImmediatePropagation(): void };
 
-const IFRAME_SANDBOX = "allow-scripts allow-same-origin allow-presentation";
 const SHIELD_MIN_MS = 1800;
 
 function cleanEmbedUrl(raw: string): string {
@@ -28,7 +27,6 @@ function cleanEmbedUrl(raw: string): string {
     const parts = url.pathname.split("/").filter(Boolean);
     if (parts[0] !== "embed") return raw;
     url.search = "";
-    url.searchParams.set("autoPlay", "1");
     return url.toString();
   } catch {
     return raw;
@@ -152,7 +150,6 @@ export function VideoPlayer({
                   <iframe
                     src={src}
                     referrerPolicy="no-referrer"
-                    sandbox={IFRAME_SANDBOX}
                     className={cn(
                       "absolute inset-0 h-full w-full border-0 transition-opacity",
                       shield ? "pointer-events-none opacity-40" : "opacity-100"
