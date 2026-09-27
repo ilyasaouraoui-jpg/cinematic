@@ -12,7 +12,6 @@ import {
   AudioLines,
   Type,
   ShieldCheck,
-  Layers,
 } from "lucide-react";
 import { languages } from "../data";
 import { cn } from "../utils/cn";
@@ -22,101 +21,14 @@ type NativeEvent = Event & { stopImmediatePropagation(): void };
 const IFRAME_SANDBOX = "allow-scripts allow-same-origin allow-presentation";
 const SHIELD_MIN_MS = 1800;
 
-const ALLOWED_HOSTS =
-  /^(vidsrc\.(to|cc|pro|xyz)|vidcore\.org|multiembed\.mov|streamingnow\.mov)$/;
-
-type EmbedInfo = {
-  type: "movie" | "tv";
-  id: string;
-  season?: number;
-  episode?: number;
-};
-
-type Provider = {
-  id: string;
-  label: string;
-  note?: string;
-  build: (i: EmbedInfo) => string;
-};
-
-const PROVIDERS: Provider[] = [
-  {
-    id: "vidsrc",
-    label: "VidSrc",
-    note: "Classic",
-    build: (i) =>
-      i.type === "tv"
-        ? `https://vidsrc.to/embed/tv/${i.id}/${i.season ?? 1}/${i.episode ?? 1}`
-        : `https://vidsrc.to/embed/movie/${i.id}`,
-  },
-  {
-    id: "vidcore",
-    label: "VidCore",
-    note: "Fast",
-    build: (i) =>
-      i.type === "tv"
-        ? `https://vidcore.org/embed/tv/${i.id}/${i.season ?? 1}/${i.episode ?? 1}`
-        : `https://vidcore.org/embed/movie/${i.id}`,
-  },
-  {
-    id: "multiembed",
-    label: "MultiEmbed",
-    note: "Alt",
-    build: (i) =>
-      i.type === "tv"
-        ? `https://multiembed.mov/?video_id=${i.id}&tmdb=1&s=${i.season ?? 1}&e=${i.episode ?? 1}`
-        : `https://multiembed.mov/?video_id=${i.id}&tmdb=1`,
-  },
-];
-
-function parseEmbedInfo(
-  raw: string,
-  season?: number,
-  episode?: number
-): EmbedInfo | null {
-  try {
-    const url = new URL(raw, window.location.origin);
-    const parts = url.pathname.split("/").filter(Boolean);
-    const idx = parts.findIndex((p) => p === "movie" || p === "tv");
-    if (idx >= 0 && parts[idx + 1]) {
-      const type = parts[idx] as "movie" | "tv";
-      if (type === "tv") {
-        const s = Number(parts[idx + 2]);
-        const e = Number(parts[idx + 3]);
-        if (s && e) return { type, id: parts[idx + 1], season: s, episode: e };
-        if (season && episode) return { type, id: parts[idx + 1], season, episode };
-        return null;
-      }
-      return { type: "movie", id: parts[idx + 1] };
-    }
-    const idParam =
-      url.searchParams.get("id") || url.searchParams.get("video_id");
-    if (idParam && /^\d+$|^tt\d+$/.test(idParam)) {
-      const s = Number(
-        url.searchParams.get("s") || url.searchParams.get("season")
-      );
-      const e = Number(
-        url.searchParams.get("e") || url.searchParams.get("episode")
-      );
-      if (s && e) return { type: "tv", id: idParam, season: s, episode: e };
-      if (season && episode)
-        return { type: "tv", id: idParam, season, episode };
-      return { type: "movie", id: idParam };
-    }
-  } catch {
-    /* fall through */
-  }
-  return null;
-}
-
 function cleanEmbedUrl(raw: string): string {
   try {
     const url = new URL(raw);
-    if (!ALLOWED_HOSTS.test(url.hostname)) return raw;
-    if (url.hostname.includes("vidsrc")) {
-      url.search = "";
-      url.searchParams.set("autoPlay", "1");
-    }
+    if (!/vidsrc\.(to|cc|pro|xyz)$/.test(url.hostname)) return raw;
+    const parts = url.pathname.split("/").filter(Boolean);
+    if (parts[0] !== "embed") return raw;
+    url.search = "";
+    url.searchParams.set("autoPlay", "1");
     return url.toString();
   } catch {
     return raw;
@@ -138,26 +50,17 @@ export function VideoPlayer({
   season?: number;
   episode?: number;
 }) {
-  const [panel, setPanel] = useState<null | "subs" | "quality" | "sources">(null);
+  const [panel, setPanel] = useState<null | "subs" | "quality">(null);
   const [sub, setSub] = useState("en");
   const [audio, setAudio] = useState("ja");
   const [quality, setQuality] = useState("4K");
   const [tab, setTab] = useState<"sub" | "audio">("sub");
   const [started, setStarted] = useState(false);
   const [shield, setShield] = useState(false);
-  const [providerIdx, setProviderIdx] = useState(0);
   const shieldArmedAt = useRef(0);
   const absorbedRef = useRef(0);
 
-  const info = useMemo(
-    () => (embedUrl ? parseEmbedInfo(embedUrl, season, episode) : null),
-    [embedUrl, season, episode]
-  );
-
-  const src = useMemo(() => {
-    const raw = info ? PROVIDERS[providerIdx].build(info) : embedUrl;
-    return raw ? cleanEmbedUrl(raw) : null;
-  }, [info, providerIdx, embedUrl]);
+  const src = useMemo(() => (embedUrl ? cleanEmbedUrl(embedUrl) : null), [embedUrl]);
 
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
@@ -177,7 +80,6 @@ export function VideoPlayer({
       setPanel(null);
       setStarted(false);
       setShield(false);
-      setProviderIdx(0);
       absorbedRef.current = 0;
     }
   }, [open, embedUrl]);
@@ -187,20 +89,6 @@ export function VideoPlayer({
     setShield(true);
     absorbedRef.current = 0;
     shieldArmedAt.current = Date.now();
-  };
-
-  const switchProvider = (idx: number) => {
-    if (idx === providerIdx) {
-      setPanel(null);
-      return;
-    }
-    setProviderIdx(idx);
-    setPanel(null);
-    if (started) {
-      setShield(true);
-      absorbedRef.current = 0;
-      shieldArmedAt.current = Date.now();
-    }
   };
 
   const absorbClick = useCallback((e: React.MouseEvent) => {
@@ -368,21 +256,6 @@ export function VideoPlayer({
                   <Settings2 className="h-[17px] w-[17px]" />
                 </button>
 
-                <button
-                  onClick={() => setPanel(panel === "sources" ? null : "sources")}
-                  className={cn(
-                    "flex items-center gap-2 rounded-xl border px-2.5 py-2 text-[12px] font-medium transition md:px-3.5",
-                    panel === "sources"
-                      ? "border-neon-400/60 bg-neon-500/25 text-white neon-glow"
-                      : "border-white/12 bg-white/[0.07] text-white/80 hover:bg-white/15"
-                  )}
-                >
-                  <Layers className="h-[17px] w-[17px]" />
-                  <span className="hidden sm:inline">
-                    {PROVIDERS[providerIdx]?.label ?? "Source"}
-                  </span>
-                </button>
-
                 <button className="grid h-9 w-9 place-items-center rounded-full text-white/75 hover:bg-white/12 hover:text-white md:h-10 md:w-10">
                   <Volume2 className="h-[18px] w-[18px]" />
                 </button>
@@ -515,56 +388,6 @@ export function VideoPlayer({
                         {(quality === q || quality === q.split(" ")[0]) && <Check className="h-3.5 w-3.5 text-neon-400" strokeWidth={3} />}
                       </button>
                     ))}
-                  </motion.div>
-                </>
-              )}
-            </AnimatePresence>
-
-            <AnimatePresence>
-              {panel === "sources" && (
-                <>
-                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                    onClick={() => setPanel(null)} className="absolute inset-0 z-40" />
-                  <motion.div
-                    initial={{ opacity: 0, y: 16, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 12, scale: 0.97 }}
-                    className="absolute bottom-24 right-3 z-50 w-60 rounded-2xl glass-dark p-2 shadow-2xl md:bottom-28 md:right-7"
-                  >
-                    <div className="flex items-center gap-2 px-3 py-2">
-                      <Layers className="h-3.5 w-3.5 text-neon-400" />
-                      <p className="text-[11px] font-semibold uppercase tracking-wider text-white/40">Source</p>
-                    </div>
-                    {PROVIDERS.map((p, idx) => (
-                      <button
-                        key={p.id}
-                        onClick={() => switchProvider(idx)}
-                        className={cn(
-                          "flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-white/[0.07]",
-                          providerIdx === idx ? "bg-neon-500/15" : ""
-                        )}
-                      >
-                        <span className="flex items-center gap-2.5">
-                          <span className={cn(
-                            "text-[13px] font-medium",
-                            providerIdx === idx ? "text-white" : "text-white/75"
-                          )}>
-                            {p.label}
-                          </span>
-                          {p.note && (
-                            <span className="rounded-full bg-white/[0.08] px-2 py-0.5 text-[9.5px] uppercase tracking-wider text-white/45">
-                              {p.note}
-                            </span>
-                          )}
-                        </span>
-                        {providerIdx === idx ? (
-                          <Check className="h-4 w-4 text-neon-400" strokeWidth={3} />
-                        ) : (
-                          <span className="h-4 w-4 rounded-full border border-white/15" />
-                        )}
-                      </button>
-                    ))}
-                    <p className="border-t border-white/[0.07] px-3 pb-1 pt-2.5 text-[10.5px] leading-relaxed text-white/35">
-                      If the video doesn&apos;t play or shows ads, switch source.
-                    </p>
                   </motion.div>
                 </>
               )}
