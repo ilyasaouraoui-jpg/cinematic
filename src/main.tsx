@@ -1,19 +1,17 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
-import { Analytics } from "@vercel/analytics/react";
-import { GoogleAnalytics } from "@next/third-parties/google";
+import ReactGA from "react-ga4";
 import "./index.css";
 import App from "./App";
 
-const GA_ID = import.meta.env.VITE_GA_ID || "G-NZ2WJ2KQMH";
+ReactGA.initialize(import.meta.env.VITE_GA_ID || "G-NZ2WJ2KQMH");
+ReactGA.send("pageview");
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <BrowserRouter>
       <App />
-      <Analytics />
-      <GoogleAnalytics gaId={GA_ID} />
     </BrowserRouter>
   </StrictMode>
 );
