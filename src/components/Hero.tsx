@@ -122,7 +122,7 @@ export function Hero({
 
             <h1
               className={cn(
-                "text-glow text-[13vw] leading-[0.92] text-white sm:text-6xl md:text-7xl lg:text-[86px]",
+                "text-glow line-clamp-2 text-[9vw] leading-[0.98] text-white sm:text-5xl md:text-6xl lg:text-[64px]",
                 h.fontClass
               )}
             >
@@ -153,7 +153,7 @@ export function Hero({
               </span>
             </div>
 
-            <p className="mt-4 max-w-lg text-[13px] leading-relaxed text-white/65 md:text-[14.5px]">
+            <p className="mt-4 line-clamp-3 max-w-lg text-[13px] leading-relaxed text-white/65 md:text-[14.5px]">
               {h.synopsis}
             </p>
 

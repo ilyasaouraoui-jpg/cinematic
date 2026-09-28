@@ -15,7 +15,7 @@ import { AdvancedBrowsePage } from "./components/AdvancedBrowsePage";
 import { rows, type Title } from "./data";
 import { tmdbAPI, type TMDBTitle, tmdbToTitle } from "./api";
 import {
-  loadProfiles,
+  ensureDefaultProfiles,
   getActiveProfileId,
   setActiveProfileId,
   clearActiveProfileId,
@@ -172,6 +172,7 @@ export function App() {
   });
   const [activeProfile, setActiveProfile] = useState<Profile | null>(null);
   const [profileSelected, setProfileSelected] = useState(false);
+  const [forceGate, setForceGate] = useState(false);
   const [detail, setDetail] = useState<Title | null>(null);
   const [searchSeed, setSearchSeed] = useState("");
   const [trendingItems, setTrendingItems] = useState<Title[]>([]);
@@ -204,23 +205,22 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    if (authed && !profileSelected) {
-      const profiles = loadProfiles();
-      if (profiles.length === 0) return;
+    if (authed && !profileSelected && !forceGate) {
+      const list = ensureDefaultProfiles();
+      if (list.length === 0) return;
       const savedId = getActiveProfileId();
-      const found = savedId ? profiles.find((p) => p.id === savedId) : null;
-      if (found) {
-        setActiveProfile(found);
-        setProfileSelected(true);
-      } else if (savedId) {
-        clearActiveProfileId();
-      }
+      const found = savedId ? list.find((p) => p.id === savedId) : null;
+      const pick = found || list[0];
+      setActiveProfile(pick);
+      setProfileSelected(true);
+      setActiveProfileId(pick.id);
     }
-  }, [authed, profileSelected]);
+  }, [authed, profileSelected, forceGate]);
 
   const handleProfileSelect = (profile: Profile) => {
     setActiveProfile(profile);
     setProfileSelected(true);
+    setForceGate(false);
     setActiveProfileId(profile.id);
     navigate("/", { replace: true });
   };
@@ -250,6 +250,7 @@ export function App() {
     setUser(null);
     setAuthed(false);
     setProfileSelected(false);
+    setForceGate(false);
     setActiveProfile(null);
     navigate("/");
     localStorage.removeItem("token");
@@ -268,12 +269,12 @@ export function App() {
     if (
       authed &&
       !profileSelected &&
-      !getActiveProfileId() &&
+      forceGate &&
       location.pathname !== "/profiles"
     ) {
       navigate("/profiles", { replace: true });
     }
-  }, [authed, profileSelected, location.pathname, navigate]);
+  }, [authed, profileSelected, forceGate, location.pathname, navigate]);
 
   const isKids = !!activeProfile?.isKids;
   const visibleTrending = isKids ? filterKids(trendingItems) : trendingItems;
@@ -332,12 +333,13 @@ export function App() {
     setUser(userData);
     setAuthed(true);
     setProfileSelected(false);
+    setForceGate(true);
     setActiveProfile(null);
     clearActiveProfileId();
     localStorage.setItem("user", JSON.stringify(userData));
   };
 
-  if (authed && !profileSelected) {
+  if (authed && !profileSelected && forceGate) {
     return <ProfileSelector onSelect={handleProfileSelect} />;
   }
 
