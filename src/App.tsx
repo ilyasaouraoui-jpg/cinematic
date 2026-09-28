@@ -472,7 +472,15 @@ export function App() {
                     />
                   }
                 />
-                <Route path="/settings" element={<SettingsPage />} />
+                <Route
+                  path="/settings"
+                  element={
+                    <SettingsPage
+                      activeProfile={activeProfile}
+                      onSwitchProfile={handleSwitchProfile}
+                    />
+                  }
+                />
                 <Route
                   path="/title/:type/:id"
                   element={

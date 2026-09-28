@@ -7,6 +7,7 @@ import {
   Pencil,
 } from "lucide-react";
 import { loadProfiles, type Profile } from "../lib/profiles";
+import { PinModal } from "./PinModal";
 
 export function ProfileSwitcher({
   activeProfile,
@@ -28,48 +29,14 @@ export function ProfileSwitcher({
   const activatedByPointer = useRef(false);
 
   const [pinTarget, setPinTarget] = useState<Profile | null>(null);
-  const [pinSlots, setPinSlots] = useState<string[]>(["", "", "", ""]);
-  const [pinError, setPinError] = useState(false);
-  const pinInputsRef = useRef<(HTMLInputElement | null)[]>([]);
 
   const toggleOpen = () => setOpen((v) => !v);
 
   const requestSelect = (p: Profile) => {
     setOpen(false);
     if (p.id === activeProfile?.id) return;
-    setPinSlots(["", "", "", ""]);
-    setPinError(false);
     setPinTarget(p);
   };
-
-  const verifyPin = (value: string) => {
-    if (!pinTarget) return;
-    if (value === pinTarget.pin) {
-      onSelectProfile(pinTarget);
-      setPinTarget(null);
-      setPinSlots(["", "", "", ""]);
-    } else {
-      setPinError(true);
-      setPinSlots(["", "", "", ""]);
-      setTimeout(() => pinInputsRef.current[0]?.focus(), 50);
-    }
-  };
-
-  const setPinDigit = (i: number, raw: string) => {
-    const digit = raw.replace(/\D/g, "").slice(-1);
-    const next = [...pinSlots];
-    next[i] = digit;
-    setPinSlots(next);
-    setPinError(false);
-    if (digit && i < 3) pinInputsRef.current[i + 1]?.focus();
-    if (next.every((d) => d !== "")) verifyPin(next.join(""));
-  };
-
-  useEffect(() => {
-    if (pinTarget) {
-      setTimeout(() => pinInputsRef.current[0]?.focus(), 120);
-    }
-  }, [pinTarget]);
 
   useEffect(() => {
     setProfiles(loadProfiles());
@@ -231,94 +198,14 @@ export function ProfileSwitcher({
       </AnimatePresence>
 
       {/* PIN modal */}
-      <AnimatePresence>
-        {pinTarget && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setPinTarget(null)}
-            className="fixed inset-0 z-[300] flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm"
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.92, y: 16 }}
-              animate={
-                pinError
-                  ? { opacity: 1, scale: 1, y: 0, x: [0, -9, 9, -7, 7, -4, 4, 0] }
-                  : { opacity: 1, scale: 1, y: 0, x: 0 }
-              }
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ type: "spring", stiffness: 420, damping: 28 }}
-              onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-sm rounded-3xl bg-ink-900/95 p-6 text-center shadow-[0_40px_100px_-20px_rgba(0,0,0,0.95)] ring-1 ring-white/10"
-            >
-              <div
-                className={`mx-auto mb-4 h-16 w-16 rounded-2xl bg-gradient-to-br ${pinTarget.avatarColor} flex items-center justify-center`}
-              >
-                {pinTarget.isKids ? (
-                  <Baby className="h-7 w-7 text-white/90" />
-                ) : (
-                  <User className="h-7 w-7 text-white/90" />
-                )}
-              </div>
-              <h3 className="text-[16px] font-semibold text-white">
-                Enter PIN for {pinTarget.name}
-              </h3>
-              <p className="mt-1 text-[12.5px] text-white/45">
-                This profile is protected by a 4-digit PIN
-              </p>
-
-              <div className="mt-5 flex justify-center gap-3">
-                {pinSlots.map((slot, i) => (
-                  <input
-                    key={i}
-                    ref={(el) => {
-                      pinInputsRef.current[i] = el;
-                    }}
-                    value={slot}
-                    onChange={(e) => setPinDigit(i, e.target.value)}
-                    onFocus={(e) => e.target.select()}
-                    onKeyDown={(e) => {
-                      if (e.key === "Backspace" && pinSlots[i] === "" && i > 0) {
-                        pinInputsRef.current[i - 1]?.focus();
-                      }
-                      if (e.key === "Escape") setPinTarget(null);
-                      if (e.key === "Enter" && pinSlots.every((d) => d !== "")) {
-                        verifyPin(pinSlots.join(""));
-                      }
-                    }}
-                    inputMode="numeric"
-                    autoComplete="off"
-                    maxLength={1}
-                    className={`h-12 w-11 rounded-xl border bg-white/[0.05] text-center text-[18px] font-semibold text-white transition-all focus:outline-none ${
-                      pinError
-                        ? "border-red-400/70 focus:ring-2 focus:ring-red-400/30"
-                        : "border-white/15 focus:border-neon-400/60 focus:ring-2 focus:ring-neon-400/25"
-                    }`}
-                  />
-                ))}
-              </div>
-
-              <p
-                className={`mt-3 h-4 text-[12px] font-medium transition-opacity ${
-                  pinError ? "text-red-400 opacity-100" : "opacity-0"
-                }`}
-              >
-                Incorrect PIN — try again
-              </p>
-
-              <div className="mt-3 flex justify-center">
-                <button
-                  onClick={() => setPinTarget(null)}
-                  className="rounded-xl px-5 py-2 text-[13px] font-medium text-white/55 transition-colors hover:bg-white/[0.06] hover:text-white"
-                >
-                  Cancel
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <PinModal
+        target={pinTarget}
+        onClose={() => setPinTarget(null)}
+        onSuccess={(p) => {
+          onSelectProfile(p);
+          setPinTarget(null);
+        }}
+      />
     </div>
   );
 }

@@ -22,7 +22,9 @@ import { library, rows, type Title } from "../data";
 import { PosterCard } from "./PosterCard";
 import { cn } from "../utils/cn";
 import { tmdbAPI, type TMDBTitle, tmdbToTitle } from "../api";
-import { loadProfiles } from "../lib/profiles";
+import { loadProfiles, saveProfiles, isValidPin, DEFAULT_PIN, type Profile } from "../lib/profiles";
+import { PinModal } from "./PinModal";
+import { ProfileFormModal } from "./ProfileSelector";
 import { filterKids, isKidsSafe } from "../lib/kidsFilter";
 
 const Shell = ({ title, sub, children }: { title: string; sub: string; children: React.ReactNode }) => (
@@ -322,7 +324,13 @@ export function ProfilePage({
   );
 }
 
-export function SettingsPage() {
+export function SettingsPage({
+  activeProfile,
+  onSwitchProfile,
+}: {
+  activeProfile?: Profile | null;
+  onSwitchProfile?: (p: Profile) => void;
+}) {
   const [toggles, setToggles] = useState<Record<string, boolean>>({
     autoplay: true,
     previews: true,
@@ -333,7 +341,22 @@ export function SettingsPage() {
     kids_lock: false,
   });
 
-  const profiles = loadProfiles();
+  const [profiles, setProfiles] = useState<Profile[]>(() => loadProfiles());
+  const [pinTarget, setPinTarget] = useState<Profile | null>(null);
+  const [editing, setEditing] = useState<Profile | null>(null);
+
+  const handleEditSave = (name: string, color: string, isKids: boolean, pin: string) => {
+    if (!editing) return;
+    const safePin = isValidPin(pin) ? pin : DEFAULT_PIN;
+    const updated = profiles.map((p) =>
+      p.id === editing.id
+        ? { ...p, name, avatarColor: color, isKids, pin: safePin }
+        : p
+    );
+    saveProfiles(updated);
+    setProfiles(updated);
+    setEditing(null);
+  };
 
   const membershipSections = [
     {
@@ -448,25 +471,52 @@ export function SettingsPage() {
                 {profiles.length} profile{profiles.length !== 1 ? "s" : ""} on this account
               </p>
               <div className="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-6">
-                {profiles.map((p) => (
-                  <div key={p.id} className="group relative">
-                    <div
-                      className={`aspect-square rounded-xl bg-gradient-to-br ${p.avatarColor} flex items-center justify-center transition-all group-hover:ring-2 group-hover:ring-white/40`}
-                    >
-                      {p.isKids ? (
-                        <Baby className="h-8 w-8 text-white/85" />
-                      ) : (
-                        <User className="h-8 w-8 text-white/85" />
-                      )}
+                {profiles.map((p) => {
+                  const isActive = activeProfile?.id === p.id;
+                  return (
+                    <div key={p.id} className="group relative">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!isActive) setPinTarget(p);
+                        }}
+                        className="w-full rounded-xl text-center outline-none focus-visible:ring-2 focus-visible:ring-neon-400/50"
+                      >
+                        <div
+                          className={`aspect-square rounded-xl bg-gradient-to-br ${p.avatarColor} flex items-center justify-center transition-all group-hover:ring-2 group-hover:ring-white/40 ${
+                            isActive ? "ring-2 ring-neon-400" : ""
+                          }`}
+                        >
+                          {p.isKids ? (
+                            <Baby className="h-8 w-8 text-white/85" />
+                          ) : (
+                            <User className="h-8 w-8 text-white/85" />
+                          )}
+                        </div>
+                        <p className="mt-2 truncate text-center text-[11.5px] text-white/70">
+                          {p.name}
+                        </p>
+                        {isActive ? (
+                          <span className="mt-1 inline-block rounded-full bg-neon-400/15 px-2 py-0.5 text-[10px] font-semibold text-neon-400">
+                            Active
+                          </span>
+                        ) : (
+                          <span className="mt-1 inline-block text-[10.5px] text-white/35 transition-colors group-hover:text-neon-400/80">
+                            Switch →
+                          </span>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditing(p)}
+                        aria-label={`Edit ${p.name}`}
+                        className="absolute -right-1 -top-1 z-10 grid h-6 w-6 place-items-center rounded-full border border-white/20 bg-ink-800/90 text-white/60 opacity-0 transition-opacity hover:text-white group-hover:opacity-100"
+                      >
+                        <Pencil className="h-3 w-3" />
+                      </button>
                     </div>
-                    <p className="mt-2 truncate text-center text-[11.5px] text-white/70">
-                      {p.name}
-                    </p>
-                    <button className="absolute -right-1 -top-1 grid h-6 w-6 place-items-center rounded-full border border-white/20 bg-ink-800/90 text-white/60 opacity-0 transition-opacity group-hover:opacity-100">
-                      <Pencil className="h-3 w-3" />
-                    </button>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
@@ -637,6 +687,22 @@ export function SettingsPage() {
           </div>
         </motion.div>
       </div>
+
+      <PinModal
+        target={pinTarget}
+        onClose={() => setPinTarget(null)}
+        onSuccess={(p) => {
+          onSwitchProfile?.(p);
+          setPinTarget(null);
+        }}
+      />
+
+      <ProfileFormModal
+        open={!!editing}
+        editProfile={editing}
+        onClose={() => setEditing(null)}
+        onSave={handleEditSave}
+      />
     </div>
   );
 }

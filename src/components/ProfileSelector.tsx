@@ -118,7 +118,7 @@ function AddProfileCard({ onClick }: { onClick: () => void }) {
   );
 }
 
-function ProfileFormModal({
+export function ProfileFormModal({
   open,
   editProfile,
   onClose,
