@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Plus, X, Check, User, Baby, Pencil, Trash2, Lock } from "lucide-react";
+import { Plus, X, Check, User, Pencil, Trash2, Lock } from "lucide-react";
 import {
   loadProfiles,
   saveProfiles,
@@ -15,40 +15,37 @@ import {
   EMOJI_AVATARS,
 } from "../lib/profiles";
 import { PinModal } from "./PinModal";
+import { ProfileAvatar, avatarBg } from "./ProfileAvatar";
 
-function ProfileAvatar({
-  profile,
-  size = "h-28 w-28 sm:h-32 sm:w-32",
-  iconSize = "h-14 w-14",
-  emojiSize = "text-5xl sm:text-6xl",
-}: {
-  profile: Profile;
-  size?: string;
-  iconSize?: string;
-  emojiSize?: string;
-}) {
-  if (profile.avatarEmoji) {
-    return (
-      <div
-        className={`${size} rounded-2xl bg-gradient-to-br ${profile.avatarColor} flex items-center justify-center shadow-lg`}
-      >
-        <span className={`${emojiSize} leading-none select-none`}>
-          {profile.avatarEmoji}
-        </span>
-      </div>
-    );
-  }
+function GateTitle() {
+  const lang = (
+    localStorage.getItem("lang") ||
+    (typeof navigator !== "undefined" ? navigator.language : "en") ||
+    "en"
+  ).toLowerCase();
+  const isAr = lang.startsWith("ar");
   return (
-    <div
-      className={`${size} rounded-2xl bg-gradient-to-br ${profile.avatarColor} flex items-center justify-center shadow-lg`}
+    <motion.h1
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.1 }}
+      className="mb-10 text-center font-display text-4xl font-semibold tracking-tight text-white sm:text-5xl md:text-6xl"
+      lang={isAr ? "ar" : "en"}
     >
-      {profile.isKids ? (
-        <Baby className={`${iconSize} text-white/85`} />
-      ) : (
-        <User className={`${iconSize} text-white/85`} />
-      )}
-    </div>
+      {isAr ? "من يشاهد؟" : "Who's watching?"}
+    </motion.h1>
   );
+}
+
+function getManageLabel(manage: boolean): string {
+  const lang = (
+    localStorage.getItem("lang") ||
+    (typeof navigator !== "undefined" ? navigator.language : "en") ||
+    "en"
+  ).toLowerCase();
+  const isAr = lang.startsWith("ar");
+  if (isAr) return manage ? "تم" : "إدارة الملفات الشخصية";
+  return manage ? "Done" : "Manage profiles";
 }
 
 function ProfileAvatarCard({
@@ -74,26 +71,25 @@ function ProfileAvatarCard({
       onClick={onClick}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      whileHover={{ scale: 1.06 }}
+      whileHover={{ scale: 1.08 }}
       whileTap={{ scale: 0.96 }}
-      className="group flex flex-col items-center gap-3 outline-none"
+      className="group flex flex-col items-center gap-2.5 outline-none"
     >
       <div className="relative">
         <div
-          className={`rounded-2xl transition-all duration-200 ${
+          className={`rounded-xl transition-all duration-200 ${
             hovered || manage
               ? "ring-[3px] ring-white shadow-[0_0_30px_rgba(255,255,255,0.15)]"
               : "ring-1 ring-white/10"
           }`}
         >
-          <ProfileAvatar profile={profile} />
+          <ProfileAvatar
+            profile={profile}
+            className="h-28 w-28 rounded-xl sm:h-32 sm:w-32"
+            faceClass="h-[52%] w-[52%]"
+            emojiClass="text-5xl sm:text-6xl"
+          />
         </div>
-
-        {locked && (
-          <span className="absolute -bottom-1.5 -right-1.5 grid h-7 w-7 place-items-center rounded-full border border-white/15 bg-ink-800/95 text-white/85 shadow-lg">
-            <Lock className="h-3.5 w-3.5" />
-          </span>
-        )}
 
         <AnimatePresence>
           {manage && (
@@ -129,17 +125,20 @@ function ProfileAvatarCard({
             </>
           )}
         </AnimatePresence>
+      </div>
 
+      <span className="max-w-[120px] truncate text-[14px] font-medium text-white/80 transition-colors group-hover:text-white">
+        {profile.name}
+      </span>
+
+      <div className="flex h-4 items-center gap-1.5">
+        {locked && <Lock className="h-3.5 w-3.5 text-white/45" />}
         {profile.isKids && (
-          <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-blue-500/90 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white shadow">
+          <span className="text-[9px] font-bold uppercase tracking-wider text-blue-300/90">
             Kids
           </span>
         )}
       </div>
-
-      <span className="max-w-[120px] truncate text-[13px] font-medium text-white/70 transition-colors group-hover:text-white">
-        {profile.name}
-      </span>
     </motion.button>
   );
 }
@@ -245,17 +244,16 @@ export function ProfileFormModal({
         <div className="px-6 py-6 space-y-6">
           <div className="flex flex-col items-center gap-4">
             <div className="relative">
-              <div
-                className={`h-24 w-24 rounded-2xl bg-gradient-to-br ${AVATAR_COLORS[colorIdx]} flex items-center justify-center shadow-lg`}
-              >
-                {emoji ? (
-                  <span className="text-5xl leading-none select-none">{emoji}</span>
-                ) : isKids ? (
-                  <Baby className="h-12 w-12 text-white/80" />
-                ) : (
-                  <User className="h-12 w-12 text-white/80" />
-                )}
-              </div>
+              <ProfileAvatar
+                profile={{
+                  avatarColor: AVATAR_COLORS[colorIdx],
+                  avatarEmoji: emoji,
+                  isKids,
+                }}
+                className="h-24 w-24 rounded-xl"
+                faceClass="h-[52%] w-[52%]"
+                emojiClass="text-5xl"
+              />
               {name && (
                 <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-black/60 px-3 py-0.5 text-[11px] font-medium text-white/90 backdrop-blur-sm whitespace-nowrap">
                   {name}
@@ -291,10 +289,13 @@ export function ProfileFormModal({
                 <button
                   key={c}
                   onClick={() => setColorIdx(i)}
-                  className={`relative h-9 w-9 rounded-full bg-gradient-to-br ${c} transition-transform duration-150 hover:scale-110`}
+                  aria-label={`Avatar color ${i + 1}`}
+                  className={`relative h-9 w-9 rounded-lg ${avatarBg(
+                    c
+                  )} transition-transform duration-150 hover:scale-110`}
                 >
                   {i === colorIdx && (
-                    <span className="absolute inset-0 grid place-items-center rounded-full ring-2 ring-white ring-offset-2 ring-offset-ink-900">
+                    <span className="absolute inset-0 grid place-items-center rounded-lg ring-2 ring-white ring-offset-2 ring-offset-ink-900">
                       <Check className="h-4 w-4 text-white drop-shadow" />
                     </span>
                   )}
@@ -445,21 +446,9 @@ export function ProfileSelector({
   };
 
   return (
-    <div className="fixed inset-0 z-[9998] flex flex-col items-center justify-center bg-ink-950">
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute left-1/4 top-1/4 h-[40vh] w-[40vh] rounded-full bg-neon-600/8 blur-[150px]" />
-        <div className="absolute bottom-1/4 right-1/4 h-[35vh] w-[35vh] rounded-full bg-aqua-400/6 blur-[130px]" />
-      </div>
-
+    <div className="fixed inset-0 z-[9998] flex flex-col items-center justify-center bg-[#141414]">
       <div className="relative z-10 w-full max-w-4xl px-4">
-        <motion.h1
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="mb-10 text-center font-display text-4xl font-semibold tracking-tight text-white sm:text-5xl md:text-6xl"
-        >
-          Who's watching?
-        </motion.h1>
+        <GateTitle />
 
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -498,13 +487,13 @@ export function ProfileSelector({
         >
           <button
             onClick={() => setManage((m) => !m)}
-            className={`rounded-full border px-6 py-2.5 text-[13px] font-medium transition-colors ${
+            className={`rounded-md border px-6 py-2 text-[13px] font-medium transition-colors ${
               manage
-                ? "border-neon-400/60 bg-neon-500/15 text-neon-300 hover:bg-neon-500/25"
-                : "border-white/25 text-white/70 hover:border-white/45 hover:bg-white/[0.06] hover:text-white"
+                ? "border-neon-400/70 bg-neon-500/15 text-neon-300 hover:bg-neon-500/25"
+                : "border-white/35 text-white/75 hover:border-white/60 hover:bg-white/[0.07] hover:text-white"
             }`}
           >
-            {manage ? "Done" : "Manage Profiles"}
+            {getManageLabel(manage)}
           </button>
         </motion.div>
       </div>

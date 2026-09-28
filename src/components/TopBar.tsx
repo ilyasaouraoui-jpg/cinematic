@@ -5,6 +5,7 @@ import { Search, Bell, Menu, X, CircleUserRound } from "lucide-react";
 import { library, type Title } from "../data";
 import { cn } from "../utils/cn";
 import { ProfileSwitcher } from "./ProfileSwitcher";
+import { ProfileAvatar } from "./ProfileAvatar";
 import type { Profile } from "../lib/profiles";
 import { isKidsSafe } from "../lib/kidsFilter";
 
@@ -309,13 +310,12 @@ export function TopBar({
             >
               {activeProfile && (
                 <div className="mb-3 flex items-center gap-3 px-2 py-2">
-                  <div
-                    className={`h-10 w-10 rounded bg-gradient-to-br ${activeProfile.avatarColor} flex items-center justify-center`}
-                  >
-                    <span className="text-[14px] font-bold text-white/90">
-                      {activeProfile.name.charAt(0).toUpperCase()}
-                    </span>
-                  </div>
+                  <ProfileAvatar
+                    profile={activeProfile}
+                    className="h-10 w-10 rounded"
+                    faceClass="h-[55%] w-[55%]"
+                    emojiClass="text-lg"
+                  />
                   <div>
                     <span className="block text-[14px] font-medium text-white/90">
                       {activeProfile.name}

@@ -13,8 +13,6 @@ import {
   Shield,
   Globe,
   Smartphone,
-  User,
-  Baby,
   Pencil,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -25,6 +23,7 @@ import { tmdbAPI, type TMDBTitle, tmdbToTitle } from "../api";
 import { saveProfiles, isValidPin, ensureDefaultProfiles, type Profile } from "../lib/profiles";
 import { PinModal } from "./PinModal";
 import { ProfileFormModal } from "./ProfileSelector";
+import { ProfileAvatar } from "./ProfileAvatar";
 import { filterKids, isKidsSafe } from "../lib/kidsFilter";
 
 const Shell = ({ title, sub, children }: { title: string; sub: string; children: React.ReactNode }) => (
@@ -398,10 +397,20 @@ export function SettingsPage({
     { k: "mature", label: "Mature content lock", desc: "Require PIN for TV-MA titles" },
   ];
 
+  const [lang, setLangState] = useState<string>(() => {
+    const stored = localStorage.getItem("lang");
+    if (stored === "ar" || stored === "en") return stored;
+    return ((typeof navigator !== "undefined" ? navigator.language : "en") || "en")
+      .toLowerCase()
+      .startsWith("ar")
+      ? "ar"
+      : "en";
+  });
+
   const languageItems = [
-    { label: "Display language", value: "English" },
-    { label: "Default subtitles", value: "Arabic" },
-    { label: "Subtitle appearance", value: "Medium · Drop shadow" },
+    { k: "lang", label: "Display language", value: lang === "ar" ? "العربية" : "English" },
+    { k: "subs", label: "Default subtitles", value: "Arabic" },
+    { k: "appearance", label: "Subtitle appearance", value: "Medium · Drop shadow" },
   ];
 
   return (
@@ -492,21 +501,14 @@ export function SettingsPage({
                         }}
                         className="w-full rounded-xl text-center outline-none focus-visible:ring-2 focus-visible:ring-neon-400/50"
                       >
-                        <div
-                          className={`aspect-square rounded-xl bg-gradient-to-br ${p.avatarColor} flex items-center justify-center transition-all group-hover:ring-2 group-hover:ring-white/40 ${
-                            isActive ? "ring-2 ring-neon-400" : ""
-                          }`}
-                        >
-                          {p.avatarEmoji ? (
-                            <span className="text-4xl leading-none select-none">
-                              {p.avatarEmoji}
-                            </span>
-                          ) : p.isKids ? (
-                            <Baby className="h-8 w-8 text-white/85" />
-                          ) : (
-                            <User className="h-8 w-8 text-white/85" />
-                          )}
-                        </div>
+                          <ProfileAvatar
+                            profile={p}
+                            className={`aspect-square rounded-xl transition-all group-hover:ring-2 group-hover:ring-white/40 ${
+                              isActive ? "ring-2 ring-neon-400" : ""
+                            }`}
+                            faceClass="h-[52%] w-[52%]"
+                            emojiClass="text-4xl"
+                          />
                         <p className="mt-2 truncate text-center text-[11.5px] text-white/70">
                           {p.name}
                         </p>
@@ -639,7 +641,15 @@ export function SettingsPage({
                 <div>
                   <p className="text-[13.5px] text-white/70">{item.label}</p>
                 </div>
-                <button className="flex items-center gap-1.5 text-[12.5px] text-white/55 hover:text-white">
+                <button
+                  onClick={() => {
+                    if (item.k !== "lang") return;
+                    const next = lang === "ar" ? "en" : "ar";
+                    setLangState(next);
+                    localStorage.setItem("lang", next);
+                  }}
+                  className="flex items-center gap-1.5 text-[12.5px] text-white/55 hover:text-white"
+                >
                   {item.value}
                   <ChevronRight className="h-4 w-4" />
                 </button>

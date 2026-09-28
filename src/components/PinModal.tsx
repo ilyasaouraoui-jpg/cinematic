@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Baby, User } from "lucide-react";
 import type { Profile } from "../lib/profiles";
+import { ProfileAvatar } from "./ProfileAvatar";
 
 export function PinModal({
   target,
@@ -68,15 +68,12 @@ export function PinModal({
             onClick={(e) => e.stopPropagation()}
             className="w-full max-w-sm rounded-3xl bg-ink-900/95 p-6 text-center shadow-[0_40px_100px_-20px_rgba(0,0,0,0.95)] ring-1 ring-white/10"
           >
-            <div
-              className={`mx-auto mb-4 h-16 w-16 rounded-2xl bg-gradient-to-br ${target.avatarColor} flex items-center justify-center`}
-            >
-              {target.isKids ? (
-                <Baby className="h-7 w-7 text-white/90" />
-              ) : (
-                <User className="h-7 w-7 text-white/90" />
-              )}
-            </div>
+            <ProfileAvatar
+              profile={target}
+              className="mx-auto mb-4 h-16 w-16 rounded-2xl"
+              faceClass="h-[52%] w-[52%]"
+              emojiClass="text-3xl"
+            />
             <h3 className="text-[16px] font-semibold text-white">
               Enter PIN for {target.name}
             </h3>

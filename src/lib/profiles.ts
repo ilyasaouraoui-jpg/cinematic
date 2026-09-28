@@ -15,15 +15,24 @@ export function isValidPin(value: string): boolean {
 }
 
 export const AVATAR_COLORS = [
-  "from-amber-400 to-rose-500",
-  "from-neon-400 to-aqua-400",
-  "from-emerald-400 to-teal-500",
-  "from-slate-400 to-slate-600",
-  "from-violet-400 to-fuchsia-500",
-  "from-orange-400 to-red-500",
-  "from-cyan-400 to-blue-500",
-  "from-pink-400 to-rose-600",
+  "bg-red-500",
+  "bg-amber-400",
+  "bg-blue-500",
+  "bg-green-500",
+  "bg-violet-500",
+  "bg-orange-500",
+  "bg-cyan-500",
+  "bg-pink-500",
 ];
+
+function toSolidColor(value: string): string {
+  if (!value) return "bg-slate-500";
+  if (value.startsWith("from-")) {
+    const first = value.split(/\s+/)[0];
+    return "bg-" + first.slice(5);
+  }
+  return value;
+}
 
 const PROFILES_KEY = "profiles";
 const ACTIVE_PROFILE_KEY = "activeProfileId";
@@ -38,11 +47,17 @@ export function loadProfiles(): Profile[] {
     const list: Profile[] = raw ? JSON.parse(raw) : [];
     let needsMigration = false;
     const migrated = list.map((p) => {
+      let next = p;
       if (p.pin === undefined || p.pin === null) {
         needsMigration = true;
-        return { ...p, pin: DEFAULT_PIN };
+        next = { ...next, pin: DEFAULT_PIN };
       }
-      return p;
+      const solid = toSolidColor(p.avatarColor);
+      if (solid !== p.avatarColor) {
+        needsMigration = true;
+        next = { ...next, avatarColor: solid };
+      }
+      return next;
     });
     if (needsMigration) {
       localStorage.setItem(PROFILES_KEY, JSON.stringify(migrated));

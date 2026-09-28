@@ -2,12 +2,11 @@ import { useState, useRef, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ChevronDown,
-  User,
-  Baby,
   Pencil,
 } from "lucide-react";
 import { loadProfiles, isValidPin, type Profile } from "../lib/profiles";
 import { PinModal } from "./PinModal";
+import { ProfileAvatar } from "./ProfileAvatar";
 
 export function ProfileSwitcher({
   activeProfile,
@@ -75,17 +74,12 @@ export function ProfileSwitcher({
         }}
         className="flex items-center gap-2 rounded px-1 py-1 transition-colors hover:bg-white/[0.08]"
       >
-        <div
-          className={`h-8 w-8 rounded bg-gradient-to-br ${activeProfile.avatarColor} flex items-center justify-center shadow-md`}
-        >
-          {activeProfile.avatarEmoji ? (
-            <span className="text-[15px] leading-none">{activeProfile.avatarEmoji}</span>
-          ) : activeProfile.isKids ? (
-            <Baby className="h-4 w-4 text-white/90" />
-          ) : (
-            <User className="h-4 w-4 text-white/90" />
-          )}
-        </div>
+        <ProfileAvatar
+          profile={activeProfile}
+          className="h-8 w-8 rounded shadow-md"
+          faceClass="h-[55%] w-[55%]"
+          emojiClass="text-sm"
+        />
         <ChevronDown
           className={`h-4 w-4 text-white/60 transition-transform duration-200 ${
             open ? "rotate-180" : ""
@@ -117,20 +111,17 @@ export function ProfileSwitcher({
                       : "hover:bg-white/[0.06]"
                   }`}
                 >
-                  <div
-                    className={`relative h-8 w-8 shrink-0 rounded bg-gradient-to-br ${p.avatarColor} flex items-center justify-center transition-all ${
-                      hoveredId === p.id && p.id !== activeProfile.id
-                        ? "ring-2 ring-white/40"
-                        : ""
-                    }`}
-                  >
-                    {p.avatarEmoji ? (
-                      <span className="text-[15px] leading-none">{p.avatarEmoji}</span>
-                    ) : p.isKids ? (
-                      <Baby className="h-4 w-4 text-white/85" />
-                    ) : (
-                      <User className="h-4 w-4 text-white/85" />
-                    )}
+                  <div className="relative shrink-0">
+                    <ProfileAvatar
+                      profile={p}
+                      className={`h-8 w-8 rounded transition-all ${
+                        hoveredId === p.id && p.id !== activeProfile.id
+                          ? "ring-2 ring-white/40"
+                          : ""
+                      }`}
+                      faceClass="h-[55%] w-[55%]"
+                      emojiClass="text-sm"
+                    />
                     {p.id === activeProfile.id && (
                       <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-ink-900 bg-neon-400" />
                     )}
