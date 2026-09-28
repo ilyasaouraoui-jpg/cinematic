@@ -24,6 +24,7 @@ import { PosterCard } from "./PosterCard";
 import { cn } from "../utils/cn";
 import { tmdbAPI, type TMDBTitle, tmdbToTitle } from "../api";
 import { loadProfiles } from "../lib/profiles";
+import { filterKids, isKidsSafe } from "../lib/kidsFilter";
 
 const Shell = ({ title, sub, children }: { title: string; sub: string; children: React.ReactNode }) => (
   <div className="px-5 pb-16 pt-24 md:px-12 md:pt-24 lg:px-16">
@@ -84,11 +85,13 @@ export function SearchPage({
   onPlay,
   initial = "",
   onSearchResults,
+  isKids = false,
 }: {
   onOpen: (t: Title) => void;
   onPlay: () => void;
   initial?: string;
   onSearchResults?: (results: Title[]) => void;
+  isKids?: boolean;
 }) {
   const [q, setQ] = useState(initial);
   const [apiResults, setApiResults] = useState<Title[]>([]);
@@ -100,7 +103,8 @@ export function SearchPage({
     try {
       const { data } = await tmdbAPI.search(query);
       if (data.results) {
-        const mapped = data.results.map((m: TMDBTitle) => {
+        const source = isKids ? filterKids(data.results) : data.results;
+        const mapped = source.map((m: TMDBTitle) => {
           const t = tmdbToTitle(m);
           return {
             id: String(m.tmdb_id),
@@ -114,6 +118,7 @@ export function SearchPage({
             kind: t.kind,
             synopsis: t.synopsis,
             media_type: m.media_type,
+            genre_ids: m.genre_ids,
           };
         });
         setApiResults(mapped);
@@ -125,7 +130,7 @@ export function SearchPage({
     } finally {
       setLoading(false);
     }
-  }, [onSearchResults]);
+  }, [isKids, onSearchResults]);
 
   useEffect(() => {
     const t = setTimeout(() => { if (q.trim()) doSearch(q); }, 400);
@@ -136,9 +141,12 @@ export function SearchPage({
     if (!q.trim()) return [];
     const s = q.toLowerCase();
     return library.filter(
-      (i) => i.name.toLowerCase().includes(s) || i.genres.some((g) => g.toLowerCase().includes(s))
+      (i) =>
+        (!isKids || isKidsSafe(i)) &&
+        (i.name.toLowerCase().includes(s) ||
+          i.genres.some((g) => g.toLowerCase().includes(s)))
     );
-  }, [q]);
+  }, [isKids, q]);
 
   const results = apiResults.length > 0 ? apiResults : localResults;
 
@@ -164,7 +172,10 @@ export function SearchPage({
         <>
           <p className="mb-3 mt-8 text-[13px] font-semibold text-white/80">Trending searches</p>
           <div className="flex flex-wrap gap-2">
-            {["Demonic Slash", "Cyberpunk", "Fantasy", "Mecha", "Anime", "4K HDR", "Houses & Dragons"].map((t) => (
+            {(isKids
+              ? ["Animation", "Family", "Documentary", "Cartoon", "Nature", "Animals", "Kids"]
+              : ["Demonic Slash", "Cyberpunk", "Fantasy", "Mecha", "Anime", "4K HDR", "Houses & Dragons"]
+            ).map((t) => (
               <button key={t} onClick={() => setQ(t)}
                 className="rounded-full border border-white/10 bg-white/[0.05] px-3.5 py-1.5 text-[12px] text-white/65 transition hover:border-neon-400/40 hover:text-white">
                 {t}
@@ -173,7 +184,7 @@ export function SearchPage({
           </div>
           <p className="mb-4 mt-9 text-[13px] font-semibold text-white/80">Top 10 today</p>
           <div className="grid grid-cols-2 gap-x-3.5 gap-y-5 sm:grid-cols-4 lg:grid-cols-6">
-            {library.slice(0, 6).map((it, i) => (
+            {(isKids ? library.filter(isKidsSafe) : library).slice(0, 6).map((it, i) => (
               <div key={it.id} className="[&>article]:w-full">
                 <PosterCard item={it} index={i} onOpen={onOpen} onPlay={onPlay} />
               </div>

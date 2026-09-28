@@ -14,10 +14,12 @@ export function Hero({
   onPlay,
   onInfo,
   trending = [],
+  isKids = false,
 }: {
   onPlay: () => void;
   onInfo: () => void;
   trending?: Title[];
+  isKids?: boolean;
 }) {
   const [i, setI] = useState(0);
   const [added, setAdded] = useState(false);
@@ -37,14 +39,44 @@ export function Hero({
         synopsis: t.synopsis || "Discover this trending title on our streaming platform.",
         poster: t.poster,
       }))
-    : heroes.map((h) => ({ ...h, poster: "" }));
+    : isKids
+      ? []
+      : heroes.map((h) => ({ ...h, poster: "" }));
 
   const h = heroItems[i % heroItems.length];
 
   useEffect(() => {
+    if (heroItems.length === 0) return;
     const t = setInterval(() => setI((v) => (v + 1) % heroItems.length), 9000);
     return () => clearInterval(t);
   }, [heroItems.length]);
+
+  if (heroItems.length === 0) {
+    return (
+      <section className="relative h-[92svh] min-h-[560px] w-full overflow-hidden bg-gradient-to-br from-ink-900 via-ink-950 to-neon-600/12 md:h-[88vh] md:min-h-[620px]">
+        <div className="absolute inset-0 bg-gradient-to-r from-ink-950 via-ink-950/70 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 px-5 pb-10 md:px-12 md:pb-16 lg:px-16">
+          <p className="mb-3 text-[12px] font-medium text-white/60">✦ Kids Mode</p>
+          <h1 className="font-display text-[13vw] leading-[0.92] text-white sm:text-6xl md:text-7xl lg:text-[86px]">
+            CINEMATIC KIDS
+          </h1>
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            {["Animation", "Family", "Documentary"].map((g) => (
+              <span
+                key={g}
+                className="rounded-full border border-white/12 bg-white/[0.06] px-2.5 py-[3px] text-[11px] font-medium text-white/80 backdrop-blur-sm"
+              >
+                {g}
+              </span>
+            ))}
+          </div>
+          <p className="mt-4 max-w-lg text-[13px] leading-relaxed text-white/65 md:text-[14.5px]">
+            Safe picks only — fresh titles are loading…
+          </p>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="relative h-[92svh] min-h-[560px] w-full overflow-hidden md:h-[88vh] md:min-h-[620px]">

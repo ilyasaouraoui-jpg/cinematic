@@ -27,6 +27,9 @@ export function ProfileSwitcher({
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
+  const activatedByPointer = useRef(false);
+
+  const toggleOpen = () => setOpen((v) => !v);
 
   useEffect(() => {
     setProfiles(loadProfiles());
@@ -46,7 +49,19 @@ export function ProfileSwitcher({
     <div ref={ref} className="relative">
       {/* Trigger button */}
       <button
-        onClick={() => setOpen(!open)}
+        onPointerDown={(e) => {
+          if (e.pointerType === "mouse" && e.button === 0) {
+            activatedByPointer.current = true;
+            toggleOpen();
+          }
+        }}
+        onClick={() => {
+          if (activatedByPointer.current) {
+            activatedByPointer.current = false;
+            return;
+          }
+          toggleOpen();
+        }}
         className="flex items-center gap-2 rounded px-1 py-1 transition-colors hover:bg-white/[0.08]"
       >
         <div
@@ -172,6 +187,13 @@ export function ProfileSwitcher({
               >
                 Sign out of Cinematic
               </button>
+            </div>
+
+            {/* Dedication */}
+            <div className="px-4 pb-3 pt-1 text-center">
+              <span className="text-[9.5px] font-semibold uppercase tracking-[0.28em] text-white/25">
+                ILYAS NOVEX
+              </span>
             </div>
 
             {/* Arrow */}

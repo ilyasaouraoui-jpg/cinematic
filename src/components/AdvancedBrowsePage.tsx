@@ -5,6 +5,11 @@ import { tmdbAPI, type TMDBTitle, tmdbToTitle } from "../api";
 import type { Title } from "../data";
 import { PosterCard } from "./PosterCard";
 import { cn } from "../utils/cn";
+import {
+  filterKids,
+  KIDS_GENRE_IDS,
+  KIDS_GENRE_PARAM,
+} from "../lib/kidsFilter";
 
 const genres = [
   { id: 28, name: "Action" },
@@ -27,6 +32,12 @@ const genres = [
 const currentYear = new Date().getFullYear();
 const years = Array.from({ length: 30 }, (_, i) => String(currentYear - i));
 
+const kidsGenres = [
+  { id: 16, name: "Animation" },
+  { id: 10751, name: "Family" },
+  { id: 99, name: "Documentary" },
+];
+
 const sortOptions = [
   { id: "popularity.desc", label: "Most Popular" },
   { id: "primary_release_date.desc", label: "Latest" },
@@ -43,10 +54,13 @@ const typeOptions = [
 export function AdvancedBrowsePage({
   onOpen,
   onPlay,
+  isKids = false,
 }: {
   onOpen: (t: Title) => void;
   onPlay: () => void;
+  isKids?: boolean;
 }) {
+  const genreList = isKids ? kidsGenres : genres;
   const [selectedGenre, setSelectedGenre] = useState<number | null>(null);
   const [selectedYear, setSelectedYear] = useState<string | null>(null);
   const [selectedSort, setSelectedSort] = useState("popularity.desc");
@@ -65,7 +79,13 @@ export function AdvancedBrowsePage({
         sort?: string;
         type?: string;
       } = {};
-      if (selectedGenre) params.genre = String(selectedGenre);
+      if (isKids) {
+        params.genre = selectedGenre
+          ? String(selectedGenre)
+          : KIDS_GENRE_PARAM;
+      } else if (selectedGenre) {
+        params.genre = String(selectedGenre);
+      }
       if (selectedYear) params.year = selectedYear;
       params.sort = selectedSort;
       if (selectedType !== "all") params.type = selectedType;
@@ -75,7 +95,8 @@ export function AdvancedBrowsePage({
       console.log("[Browse] Got", data.results?.length, "results");
 
       if (data.results) {
-        const mapped = data.results.map((m: TMDBTitle) => {
+        const results = isKids ? filterKids(data.results) : data.results;
+        const mapped = results.map((m: TMDBTitle) => {
           const t = tmdbToTitle(m);
           return {
             id: String(m.tmdb_id),
@@ -89,6 +110,7 @@ export function AdvancedBrowsePage({
             kind: t.kind,
             synopsis: t.synopsis,
             media_type: m.media_type,
+            genre_ids: m.genre_ids,
           };
         });
         setItems(mapped);
@@ -99,12 +121,22 @@ export function AdvancedBrowsePage({
     } finally {
       setLoading(false);
     }
-  }, [selectedGenre, selectedYear, selectedSort, selectedType]);
+  }, [isKids, selectedGenre, selectedYear, selectedSort, selectedType]);
 
   useEffect(() => {
     const debounce = setTimeout(fetchItems, 300);
     return () => clearTimeout(debounce);
   }, [fetchItems]);
+
+  useEffect(() => {
+    if (
+      isKids &&
+      selectedGenre !== null &&
+      !KIDS_GENRE_IDS.includes(selectedGenre)
+    ) {
+      setSelectedGenre(null);
+    }
+  }, [isKids, selectedGenre]);
 
   const hasFilters =
     selectedGenre !== null ||
@@ -172,7 +204,7 @@ export function AdvancedBrowsePage({
                   Genre
                 </p>
                 <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
-                  {genres.map((g) => (
+                  {genreList.map((g) => (
                     <button
                       key={g.id}
                       onClick={() =>
@@ -354,7 +386,7 @@ export function AdvancedBrowsePage({
                   <span className="text-xs text-white/40">Active:</span>
                   {selectedGenre && (
                     <span className="flex items-center gap-1 rounded-full border border-neon-400/30 bg-neon-500/15 px-2.5 py-1 text-xs text-neon-300">
-                      {genres.find((g) => g.id === selectedGenre)?.name}
+                      {genreList.find((g) => g.id === selectedGenre)?.name}
                       <button
                         onClick={() => setSelectedGenre(null)}
                       >

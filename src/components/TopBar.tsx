@@ -6,6 +6,7 @@ import { library, type Title } from "../data";
 import { cn } from "../utils/cn";
 import { ProfileSwitcher } from "./ProfileSwitcher";
 import type { Profile } from "../lib/profiles";
+import { isKidsSafe } from "../lib/kidsFilter";
 
 const navLinks: { path: string; label: string }[] = [
   { path: "/", label: "Home" },
@@ -59,6 +60,7 @@ export function TopBar({
   const results: Title[] = q.trim()
     ? library
         .filter((t) => {
+          if (activeProfile?.isKids && !isKidsSafe(t)) return false;
           const s = q.toLowerCase();
           return (
             t.name.toLowerCase().includes(s) ||

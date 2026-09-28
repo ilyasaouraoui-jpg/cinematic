@@ -21,6 +21,7 @@ import {
   type Profile,
 } from "./lib/profiles";
 import { WatchlistProvider } from "./context/WatchlistContext";
+import { filterKids, KIDS_GENRE_PARAM } from "./lib/kidsFilter";
 
 export interface PlayerState {
   open: boolean;
@@ -33,9 +34,11 @@ export interface PlayerState {
 function HomePage({
   openDetail,
   trendingItems,
+  isKids = false,
 }: {
   openDetail: (t: Title) => void;
   trendingItems: Title[];
+  isKids?: boolean;
 }) {
   const play = () => {
     if (trendingItems.length > 0) openDetail(trendingItems[0]);
@@ -59,14 +62,20 @@ function HomePage({
           },
           { title: "More Like This", items: trendingItems.slice(10, 30) },
         ]
-      : rows;
+      : isKids
+        ? []
+        : rows;
 
   return (
     <>
       <Hero
         onPlay={play}
-        onInfo={() => openDetail(homeRows[0].items[0])}
+        onInfo={() => {
+          const t = homeRows[0]?.items?.[0];
+          if (t) openDetail(t);
+        }}
         trending={trendingItems}
+        isKids={isKids}
       />
       <div className="relative z-10 -mt-6 pb-16">
         {homeRows.map((r) => (
@@ -171,11 +180,20 @@ export function App() {
     setActiveProfileId(profile.id);
   };
 
+  const isKids = !!activeProfile?.isKids;
+  const visibleTrending = isKids ? filterKids(trendingItems) : trendingItems;
+
   const fetchTrending = useCallback(async () => {
     try {
-      const { data } = await tmdbAPI.trending();
+      const { data } = isKids
+        ? await tmdbAPI.discover({
+            genre: KIDS_GENRE_PARAM,
+            sort: "popularity.desc",
+          })
+        : await tmdbAPI.trending();
       if (data.results) {
-        const mapped = data.results.map((m: TMDBTitle) => {
+        const source = isKids ? filterKids(data.results) : data.results;
+        const mapped = source.map((m: TMDBTitle) => {
           const t = tmdbToTitle(m);
           return {
             id: String(m.tmdb_id),
@@ -190,14 +208,15 @@ export function App() {
             synopsis: t.synopsis,
             media_type: m.media_type,
             badge: t.badge,
-          } as Title & { media_type: string };
+            genre_ids: m.genre_ids,
+          } as Title & { media_type: string; genre_ids: number[] };
         });
         setTrendingItems(mapped);
       }
     } catch (err) {
       console.error("[Home] Failed to fetch trending:", err);
     }
-  }, []);
+  }, [isKids]);
 
   useEffect(() => {
     if (authed) fetchTrending();
@@ -315,7 +334,8 @@ export function App() {
                   element={
                     <HomePage
                       openDetail={openTitlePage}
-                      trendingItems={trendingItems}
+                      trendingItems={visibleTrending}
+                      isKids={isKids}
                     />
                   }
                 />
@@ -325,6 +345,7 @@ export function App() {
                     <AdvancedBrowsePage
                       onOpen={openTitlePage}
                       onPlay={play}
+                      isKids={isKids}
                     />
                   }
                 />
@@ -337,6 +358,7 @@ export function App() {
                       onOpen={openTitlePage}
                       onPlay={play}
                       onSearchResults={setSearchResults}
+                      isKids={isKids}
                     />
                   }
                 />
@@ -355,7 +377,7 @@ export function App() {
                     <TrendingPage
                       onOpen={openTitlePage}
                       onPlay={play}
-                      trendingItems={trendingItems}
+                      trendingItems={visibleTrending}
                     />
                   }
                 />
