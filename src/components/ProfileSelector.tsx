@@ -1,32 +1,73 @@
 import { useState, useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Plus, X, Check, User, Baby, Pencil, Trash2 } from "lucide-react";
+import { Plus, X, Check, User, Baby, Pencil, Trash2, Lock } from "lucide-react";
 import {
   loadProfiles,
   saveProfiles,
   setActiveProfileId,
   createProfile,
   deleteProfile,
-  DEFAULT_PIN,
+  ensureDefaultProfiles,
   isValidPin,
+  DEFAULT_PIN,
   type Profile,
   AVATAR_COLORS,
+  EMOJI_AVATARS,
 } from "../lib/profiles";
+import { PinModal } from "./PinModal";
+
+function ProfileAvatar({
+  profile,
+  size = "h-28 w-28 sm:h-32 sm:w-32",
+  iconSize = "h-14 w-14",
+  emojiSize = "text-5xl sm:text-6xl",
+}: {
+  profile: Profile;
+  size?: string;
+  iconSize?: string;
+  emojiSize?: string;
+}) {
+  if (profile.avatarEmoji) {
+    return (
+      <div
+        className={`${size} rounded-2xl bg-gradient-to-br ${profile.avatarColor} flex items-center justify-center shadow-lg`}
+      >
+        <span className={`${emojiSize} leading-none select-none`}>
+          {profile.avatarEmoji}
+        </span>
+      </div>
+    );
+  }
+  return (
+    <div
+      className={`${size} rounded-2xl bg-gradient-to-br ${profile.avatarColor} flex items-center justify-center shadow-lg`}
+    >
+      {profile.isKids ? (
+        <Baby className={`${iconSize} text-white/85`} />
+      ) : (
+        <User className={`${iconSize} text-white/85`} />
+      )}
+    </div>
+  );
+}
 
 function ProfileAvatarCard({
   profile,
+  manage,
   onClick,
   onEdit,
   onDelete,
   canDelete,
 }: {
   profile: Profile;
+  manage: boolean;
   onClick: () => void;
   onEdit: () => void;
   onDelete: () => void;
   canDelete: boolean;
 }) {
   const [hovered, setHovered] = useState(false);
+  const locked = isValidPin(profile.pin);
 
   return (
     <motion.button
@@ -39,22 +80,23 @@ function ProfileAvatarCard({
     >
       <div className="relative">
         <div
-          className={`h-28 w-28 sm:h-32 sm:w-32 rounded-2xl bg-gradient-to-br ${profile.avatarColor} flex items-center justify-center shadow-lg transition-all duration-200 ${
-            hovered
+          className={`rounded-2xl transition-all duration-200 ${
+            hovered || manage
               ? "ring-[3px] ring-white shadow-[0_0_30px_rgba(255,255,255,0.15)]"
               : "ring-1 ring-white/10"
           }`}
         >
-          {profile.isKids ? (
-            <Baby className="h-14 w-14 text-white/85" />
-          ) : (
-            <User className="h-14 w-14 text-white/85" />
-          )}
+          <ProfileAvatar profile={profile} />
         </div>
 
-        {/* Edit / Delete buttons on hover */}
+        {locked && (
+          <span className="absolute -bottom-1.5 -right-1.5 grid h-7 w-7 place-items-center rounded-full border border-white/15 bg-ink-800/95 text-white/85 shadow-lg">
+            <Lock className="h-3.5 w-3.5" />
+          </span>
+        )}
+
         <AnimatePresence>
-          {hovered && (
+          {manage && (
             <>
               <motion.button
                 initial={{ opacity: 0, scale: 0.7 }}
@@ -64,6 +106,7 @@ function ProfileAvatarCard({
                   e.stopPropagation();
                   onEdit();
                 }}
+                aria-label={`Edit ${profile.name}`}
                 className="absolute -right-1 -top-1 grid h-8 w-8 place-items-center rounded-full border border-white/20 bg-ink-800/90 text-white/80 shadow-lg backdrop-blur-md transition-colors hover:bg-ink-700 hover:text-white"
               >
                 <Pencil className="h-3.5 w-3.5" />
@@ -77,6 +120,7 @@ function ProfileAvatarCard({
                     e.stopPropagation();
                     onDelete();
                   }}
+                  aria-label={`Delete ${profile.name}`}
                   className="absolute -left-1 -top-1 grid h-8 w-8 place-items-center rounded-full border border-white/20 bg-ink-800/90 text-red-400 shadow-lg backdrop-blur-md transition-colors hover:bg-red-900/80 hover:text-red-300"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
@@ -127,10 +171,17 @@ export function ProfileFormModal({
   open: boolean;
   editProfile: Profile | null;
   onClose: () => void;
-  onSave: (name: string, color: string, isKids: boolean, pin: string) => void;
+  onSave: (
+    name: string,
+    color: string,
+    isKids: boolean,
+    pin: string,
+    emoji: string
+  ) => void;
 }) {
   const [name, setName] = useState("");
   const [colorIdx, setColorIdx] = useState(0);
+  const [emoji, setEmoji] = useState("");
   const [isKids, setIsKids] = useState(false);
   const [pin, setPin] = useState(DEFAULT_PIN);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -141,11 +192,13 @@ export function ProfileFormModal({
         setName(editProfile.name);
         const idx = AVATAR_COLORS.indexOf(editProfile.avatarColor);
         setColorIdx(idx >= 0 ? idx : 0);
+        setEmoji(editProfile.avatarEmoji ?? "");
         setIsKids(editProfile.isKids);
-        setPin(isValidPin(editProfile.pin) ? editProfile.pin : DEFAULT_PIN);
+        setPin(isValidPin(editProfile.pin) ? editProfile.pin : "");
       } else {
         setName("");
         setColorIdx(Math.floor(Math.random() * AVATAR_COLORS.length));
+        setEmoji("");
         setIsKids(false);
         setPin(DEFAULT_PIN);
       }
@@ -154,6 +207,12 @@ export function ProfileFormModal({
   }, [open, editProfile]);
 
   if (!open) return null;
+
+  const submit = () => {
+    if (!name.trim()) return;
+    const finalPin = pin.trim() === "" ? "" : isValidPin(pin) ? pin : DEFAULT_PIN;
+    onSave(name.trim(), AVATAR_COLORS[colorIdx], isKids, finalPin, emoji);
+  };
 
   return (
     <motion.div
@@ -189,7 +248,9 @@ export function ProfileFormModal({
               <div
                 className={`h-24 w-24 rounded-2xl bg-gradient-to-br ${AVATAR_COLORS[colorIdx]} flex items-center justify-center shadow-lg`}
               >
-                {isKids ? (
+                {emoji ? (
+                  <span className="text-5xl leading-none select-none">{emoji}</span>
+                ) : isKids ? (
                   <Baby className="h-12 w-12 text-white/80" />
                 ) : (
                   <User className="h-12 w-12 text-white/80" />
@@ -203,6 +264,29 @@ export function ProfileFormModal({
             </div>
 
             <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+              <button
+                onClick={() => setEmoji("")}
+                title="Default icon"
+                className={`relative grid h-9 w-9 place-items-center rounded-full bg-white/[0.07] transition-transform duration-150 hover:scale-110 ${
+                  emoji === "" ? "ring-2 ring-neon-400" : ""
+                }`}
+              >
+                <User className="h-4 w-4 text-white/70" />
+              </button>
+              {EMOJI_AVATARS.map((e) => (
+                <button
+                  key={e}
+                  onClick={() => setEmoji(e)}
+                  className={`relative grid h-9 w-9 place-items-center rounded-full bg-white/[0.07] text-[17px] transition-transform duration-150 hover:scale-110 ${
+                    emoji === e ? "ring-2 ring-neon-400" : ""
+                  }`}
+                >
+                  {e}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex flex-wrap items-center justify-center gap-2">
               {AVATAR_COLORS.map((c, i) => (
                 <button
                   key={c}
@@ -228,8 +312,7 @@ export function ProfileFormModal({
               value={name}
               onChange={(e) => setName(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter" && name.trim())
-                  onSave(name.trim(), AVATAR_COLORS[colorIdx], isKids, pin);
+                if (e.key === "Enter" && name.trim()) submit();
               }}
               placeholder="e.g. Ahmed"
               maxLength={24}
@@ -239,7 +322,8 @@ export function ProfileFormModal({
 
           <div>
             <label className="mb-1.5 block text-[12px] font-medium text-white/50">
-              Profile PIN
+              Profile PIN{" "}
+              <span className="font-normal text-white/35">(optional)</span>
             </label>
             <input
               value={pin}
@@ -247,7 +331,7 @@ export function ProfileFormModal({
                 setPin(e.target.value.replace(/\D/g, "").slice(0, 4))
               }
               inputMode="numeric"
-              placeholder="4-digit PIN"
+              placeholder="Leave empty to disable"
               maxLength={4}
               className="w-full rounded-xl border border-white/12 bg-white/[0.05] px-4 py-2.5 text-[14px] tracking-[0.6em] text-white placeholder:tracking-normal placeholder:text-white/30 focus:border-neon-400/50 focus:outline-none focus:ring-2 focus:ring-neon-400/20"
             />
@@ -262,7 +346,7 @@ export function ProfileFormModal({
                 Kids Profile
               </span>
               <span className="mt-0.5 block text-[11.5px] text-white/40">
-                Restrict content to family-friendly genres
+                Restrict content to Animation, Family & Documentaries
               </span>
             </div>
             <button
@@ -289,10 +373,7 @@ export function ProfileFormModal({
             Cancel
           </button>
           <button
-            onClick={() => {
-              if (name.trim())
-                onSave(name.trim(), AVATAR_COLORS[colorIdx], isKids, pin);
-            }}
+            onClick={submit}
             disabled={!name.trim()}
             className="rounded-xl bg-neon-600 px-5 py-2 text-[13px] font-semibold text-white shadow-lg shadow-neon-600/20 transition-all hover:bg-neon-500 disabled:cursor-not-allowed disabled:opacity-40"
           >
@@ -312,30 +393,35 @@ export function ProfileSelector({
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
+  const [pinTarget, setPinTarget] = useState<Profile | null>(null);
+  const [manage, setManage] = useState(false);
 
   useEffect(() => {
-    setProfiles(loadProfiles());
+    setProfiles(ensureDefaultProfiles());
   }, []);
 
-  const handleSaveProfile = (name: string, color: string, isKids: boolean, pin: string) => {
-    const safePin = isValidPin(pin) ? pin : DEFAULT_PIN;
+  const handleSaveProfile = (
+    name: string,
+    color: string,
+    isKids: boolean,
+    pin: string,
+    emoji: string
+  ) => {
     if (editingProfile) {
       const updated = profiles.map((p) =>
         p.id === editingProfile.id
-          ? { ...p, name, avatarColor: color, isKids, pin: safePin }
+          ? { ...p, name, avatarColor: color, isKids, pin, avatarEmoji: emoji }
           : p
       );
       saveProfiles(updated);
       setProfiles(updated);
       setEditingProfile(null);
     } else {
-      const newProfile = createProfile(name, color, isKids, safePin);
+      const newProfile = createProfile(name, color, isKids, pin, emoji);
       const updated = [...profiles, newProfile];
       saveProfiles(updated);
       setProfiles(updated);
       setShowModal(false);
-      setActiveProfileId(newProfile.id);
-      onSelect(newProfile);
     }
   };
 
@@ -344,7 +430,16 @@ export function ProfileSelector({
     setProfiles(loadProfiles());
   };
 
-  const handleSelectProfile = (profile: Profile) => {
+  const requestSelect = (profile: Profile) => {
+    if (manage) {
+      setEditingProfile(profile);
+      setShowModal(true);
+      return;
+    }
+    if (isValidPin(profile.pin)) {
+      setPinTarget(profile);
+      return;
+    }
     setActiveProfileId(profile.id);
     onSelect(profile);
   };
@@ -376,7 +471,8 @@ export function ProfileSelector({
             <ProfileAvatarCard
               key={profile.id}
               profile={profile}
-              onClick={() => handleSelectProfile(profile)}
+              manage={manage}
+              onClick={() => requestSelect(profile)}
               onEdit={() => {
                 setEditingProfile(profile);
                 setShowModal(true);
@@ -386,9 +482,42 @@ export function ProfileSelector({
             />
           ))}
 
-          <AddProfileCard onClick={() => setShowModal(true)} />
+          <AddProfileCard
+            onClick={() => {
+              setEditingProfile(null);
+              setShowModal(true);
+            }}
+          />
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.45 }}
+          className="mt-10 flex justify-center"
+        >
+          <button
+            onClick={() => setManage((m) => !m)}
+            className={`rounded-full border px-6 py-2.5 text-[13px] font-medium transition-colors ${
+              manage
+                ? "border-neon-400/60 bg-neon-500/15 text-neon-300 hover:bg-neon-500/25"
+                : "border-white/25 text-white/70 hover:border-white/45 hover:bg-white/[0.06] hover:text-white"
+            }`}
+          >
+            {manage ? "Done" : "Manage Profiles"}
+          </button>
         </motion.div>
       </div>
+
+      <PinModal
+        target={pinTarget}
+        onClose={() => setPinTarget(null)}
+        onSuccess={(p) => {
+          setActiveProfileId(p.id);
+          setPinTarget(null);
+          onSelect(p);
+        }}
+      />
 
       <AnimatePresence>
         {showModal && (

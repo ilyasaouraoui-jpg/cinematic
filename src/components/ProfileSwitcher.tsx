@@ -6,7 +6,7 @@ import {
   Baby,
   Pencil,
 } from "lucide-react";
-import { loadProfiles, type Profile } from "../lib/profiles";
+import { loadProfiles, isValidPin, type Profile } from "../lib/profiles";
 import { PinModal } from "./PinModal";
 
 export function ProfileSwitcher({
@@ -35,7 +35,11 @@ export function ProfileSwitcher({
   const requestSelect = (p: Profile) => {
     setOpen(false);
     if (p.id === activeProfile?.id) return;
-    setPinTarget(p);
+    if (isValidPin(p.pin)) {
+      setPinTarget(p);
+    } else {
+      onSelectProfile(p);
+    }
   };
 
   useEffect(() => {
@@ -74,7 +78,9 @@ export function ProfileSwitcher({
         <div
           className={`h-8 w-8 rounded bg-gradient-to-br ${activeProfile.avatarColor} flex items-center justify-center shadow-md`}
         >
-          {activeProfile.isKids ? (
+          {activeProfile.avatarEmoji ? (
+            <span className="text-[15px] leading-none">{activeProfile.avatarEmoji}</span>
+          ) : activeProfile.isKids ? (
             <Baby className="h-4 w-4 text-white/90" />
           ) : (
             <User className="h-4 w-4 text-white/90" />
@@ -118,7 +124,9 @@ export function ProfileSwitcher({
                         : ""
                     }`}
                   >
-                    {p.isKids ? (
+                    {p.avatarEmoji ? (
+                      <span className="text-[15px] leading-none">{p.avatarEmoji}</span>
+                    ) : p.isKids ? (
                       <Baby className="h-4 w-4 text-white/85" />
                     ) : (
                       <User className="h-4 w-4 text-white/85" />

@@ -22,7 +22,7 @@ import { library, rows, type Title } from "../data";
 import { PosterCard } from "./PosterCard";
 import { cn } from "../utils/cn";
 import { tmdbAPI, type TMDBTitle, tmdbToTitle } from "../api";
-import { loadProfiles, saveProfiles, isValidPin, DEFAULT_PIN, type Profile } from "../lib/profiles";
+import { saveProfiles, isValidPin, ensureDefaultProfiles, type Profile } from "../lib/profiles";
 import { PinModal } from "./PinModal";
 import { ProfileFormModal } from "./ProfileSelector";
 import { filterKids, isKidsSafe } from "../lib/kidsFilter";
@@ -341,16 +341,21 @@ export function SettingsPage({
     kids_lock: false,
   });
 
-  const [profiles, setProfiles] = useState<Profile[]>(() => loadProfiles());
+  const [profiles, setProfiles] = useState<Profile[]>(() => ensureDefaultProfiles());
   const [pinTarget, setPinTarget] = useState<Profile | null>(null);
   const [editing, setEditing] = useState<Profile | null>(null);
 
-  const handleEditSave = (name: string, color: string, isKids: boolean, pin: string) => {
+  const handleEditSave = (
+    name: string,
+    color: string,
+    isKids: boolean,
+    pin: string,
+    emoji: string
+  ) => {
     if (!editing) return;
-    const safePin = isValidPin(pin) ? pin : DEFAULT_PIN;
     const updated = profiles.map((p) =>
       p.id === editing.id
-        ? { ...p, name, avatarColor: color, isKids, pin: safePin }
+        ? { ...p, name, avatarColor: color, isKids, pin, avatarEmoji: emoji }
         : p
     );
     saveProfiles(updated);
@@ -478,7 +483,12 @@ export function SettingsPage({
                       <button
                         type="button"
                         onClick={() => {
-                          if (!isActive) setPinTarget(p);
+                          if (isActive) return;
+                          if (isValidPin(p.pin)) {
+                            setPinTarget(p);
+                          } else {
+                            onSwitchProfile?.(p);
+                          }
                         }}
                         className="w-full rounded-xl text-center outline-none focus-visible:ring-2 focus-visible:ring-neon-400/50"
                       >
@@ -487,7 +497,11 @@ export function SettingsPage({
                             isActive ? "ring-2 ring-neon-400" : ""
                           }`}
                         >
-                          {p.isKids ? (
+                          {p.avatarEmoji ? (
+                            <span className="text-4xl leading-none select-none">
+                              {p.avatarEmoji}
+                            </span>
+                          ) : p.isKids ? (
                             <Baby className="h-8 w-8 text-white/85" />
                           ) : (
                             <User className="h-8 w-8 text-white/85" />

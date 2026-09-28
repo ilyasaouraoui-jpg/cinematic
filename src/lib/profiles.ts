@@ -5,6 +5,7 @@ export interface Profile {
   isKids: boolean;
   createdAt: number;
   pin: string;
+  avatarEmoji?: string;
 }
 
 export const DEFAULT_PIN = "0000";
@@ -37,7 +38,7 @@ export function loadProfiles(): Profile[] {
     const list: Profile[] = raw ? JSON.parse(raw) : [];
     let needsMigration = false;
     const migrated = list.map((p) => {
-      if (!isValidPin(p.pin)) {
+      if (p.pin === undefined || p.pin === null) {
         needsMigration = true;
         return { ...p, pin: DEFAULT_PIN };
       }
@@ -64,11 +65,42 @@ export function setActiveProfileId(id: string): void {
   localStorage.setItem(ACTIVE_PROFILE_KEY, id);
 }
 
+export function clearActiveProfileId(): void {
+  localStorage.removeItem(ACTIVE_PROFILE_KEY);
+}
+
+export const EMOJI_AVATARS = [
+  "😀",
+  "😎",
+  "🐱",
+  "🐶",
+  "🦊",
+  "🐼",
+  "🚀",
+  "🎮",
+  "🎬",
+  "⭐",
+  "🌈",
+  "🤖",
+];
+
+export function ensureDefaultProfiles(): Profile[] {
+  let list = loadProfiles();
+  if (list.length === 0) {
+    const normal = createProfile("Normal", AVATAR_COLORS[1], false, DEFAULT_PIN);
+    const kids = createProfile("Kids", AVATAR_COLORS[6], true, DEFAULT_PIN);
+    list = [normal, kids];
+    saveProfiles(list);
+  }
+  return list;
+}
+
 export function createProfile(
   name: string,
   avatarColor: string,
   isKids: boolean,
-  pin: string = DEFAULT_PIN
+  pin: string = DEFAULT_PIN,
+  avatarEmoji?: string
 ): Profile {
   return {
     id: generateId(),
@@ -76,7 +108,8 @@ export function createProfile(
     avatarColor,
     isKids,
     createdAt: Date.now(),
-    pin: isValidPin(pin) ? pin : DEFAULT_PIN,
+    pin: isValidPin(pin) ? pin : pin === "" ? "" : DEFAULT_PIN,
+    avatarEmoji,
   };
 }
 

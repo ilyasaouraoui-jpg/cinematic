@@ -18,6 +18,7 @@ import {
   loadProfiles,
   getActiveProfileId,
   setActiveProfileId,
+  clearActiveProfileId,
   type Profile,
 } from "./lib/profiles";
 import { WatchlistProvider, useWatchlist, type WatchlistItem } from "./context/WatchlistContext";
@@ -211,6 +212,8 @@ export function App() {
       if (found) {
         setActiveProfile(found);
         setProfileSelected(true);
+      } else if (savedId) {
+        clearActiveProfileId();
       }
     }
   }, [authed, profileSelected]);
@@ -218,6 +221,8 @@ export function App() {
   const handleProfileSelect = (profile: Profile) => {
     setActiveProfile(profile);
     setProfileSelected(true);
+    setActiveProfileId(profile.id);
+    navigate("/", { replace: true });
   };
 
   const handleSwitchProfile = (profile: Profile) => {
@@ -258,6 +263,17 @@ export function App() {
       navigate("/", { replace: true });
     }
   }, [location.pathname, authed, navigate]);
+
+  useEffect(() => {
+    if (
+      authed &&
+      !profileSelected &&
+      !getActiveProfileId() &&
+      location.pathname !== "/profiles"
+    ) {
+      navigate("/profiles", { replace: true });
+    }
+  }, [authed, profileSelected, location.pathname, navigate]);
 
   const isKids = !!activeProfile?.isKids;
   const visibleTrending = isKids ? filterKids(trendingItems) : trendingItems;
@@ -315,6 +331,9 @@ export function App() {
   }) => {
     setUser(userData);
     setAuthed(true);
+    setProfileSelected(false);
+    setActiveProfile(null);
+    clearActiveProfileId();
     localStorage.setItem("user", JSON.stringify(userData));
   };
 
@@ -469,6 +488,17 @@ export function App() {
                       onPlay={play}
                       user={user}
                       onLogout={handleLogout}
+                    />
+                  }
+                />
+                <Route
+                  path="/profiles"
+                  element={
+                    <ProfileSelector
+                      onSelect={(p) => {
+                        handleSwitchProfile(p);
+                        navigate("/", { replace: true });
+                      }}
                     />
                   }
                 />
