@@ -15,11 +15,15 @@ export function Hero({
   onInfo,
   trending = [],
   isKids = false,
+  isSaved,
+  onToggleSave,
 }: {
   onPlay: () => void;
   onInfo: () => void;
   trending?: Title[];
   isKids?: boolean;
+  isSaved?: (t: Title) => boolean;
+  onToggleSave?: (t: Title) => void;
 }) {
   const [i, setI] = useState(0);
   const [added, setAdded] = useState(false);
@@ -38,12 +42,15 @@ export function Hero({
         tagline: "",
         synopsis: t.synopsis || "Discover this trending title on our streaming platform.",
         poster: t.poster,
+        source: t as Title,
       }))
     : isKids
       ? []
-      : heroes.map((h) => ({ ...h, poster: "" }));
+      : heroes.map((h) => ({ ...h, poster: "", source: undefined as Title | undefined }));
 
   const h = heroItems[i % heroItems.length];
+  const currentSource = heroItems[i % heroItems.length]?.source;
+  const saved = currentSource && isSaved ? isSaved(currentSource) : added;
 
   useEffect(() => {
     if (heroItems.length === 0) return;
@@ -161,9 +168,16 @@ export function Hero({
                 Play S1 E1
               </motion.button>
 
-              <CircleBtn onClick={() => setAdded((v) => !v)} label="My List">
+              <CircleBtn
+                onClick={() => {
+                  const src = heroItems[i % heroItems.length]?.source;
+                  if (src && onToggleSave) onToggleSave(src);
+                  else setAdded((v) => !v);
+                }}
+                label="My List"
+              >
                 <AnimatePresence mode="wait" initial={false}>
-                  {added ? (
+                  {saved ? (
                     <motion.span
                       key="c"
                       initial={{ scale: 0.4, opacity: 0 }}

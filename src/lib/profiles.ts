@@ -4,6 +4,13 @@ export interface Profile {
   avatarColor: string;
   isKids: boolean;
   createdAt: number;
+  pin: string;
+}
+
+export const DEFAULT_PIN = "0000";
+
+export function isValidPin(value: string): boolean {
+  return /^\d{4}$/.test(value);
 }
 
 export const AVATAR_COLORS = [
@@ -27,7 +34,19 @@ function generateId(): string {
 export function loadProfiles(): Profile[] {
   try {
     const raw = localStorage.getItem(PROFILES_KEY);
-    return raw ? JSON.parse(raw) : [];
+    const list: Profile[] = raw ? JSON.parse(raw) : [];
+    let needsMigration = false;
+    const migrated = list.map((p) => {
+      if (!isValidPin(p.pin)) {
+        needsMigration = true;
+        return { ...p, pin: DEFAULT_PIN };
+      }
+      return p;
+    });
+    if (needsMigration) {
+      localStorage.setItem(PROFILES_KEY, JSON.stringify(migrated));
+    }
+    return migrated;
   } catch {
     return [];
   }
@@ -45,13 +64,19 @@ export function setActiveProfileId(id: string): void {
   localStorage.setItem(ACTIVE_PROFILE_KEY, id);
 }
 
-export function createProfile(name: string, avatarColor: string, isKids: boolean): Profile {
+export function createProfile(
+  name: string,
+  avatarColor: string,
+  isKids: boolean,
+  pin: string = DEFAULT_PIN
+): Profile {
   return {
     id: generateId(),
     name,
     avatarColor,
     isKids,
     createdAt: Date.now(),
+    pin: isValidPin(pin) ? pin : DEFAULT_PIN,
   };
 }
 

@@ -5,7 +5,6 @@ import {
   X,
   Play,
   ChevronRight,
-  Bookmark,
   TrendingUp,
   Bell,
   Settings as SettingsIcon,
@@ -232,7 +231,6 @@ export function ProfilePage({
 }) {
   const navigate = useNavigate();
   const quick: { path: string; icon: typeof Bell; label: string; sub: string }[] = [
-    { path: "/mylist", icon: Bookmark, label: "My List", sub: "8 titles" },
     { path: "/trending", icon: TrendingUp, label: "Trending", sub: "Top 10 this week" },
     { path: "/alerts", icon: Bell, label: "Alerts", sub: "2 unread" },
     { path: "/settings", icon: SettingsIcon, label: "Settings", sub: "Playback & more" },

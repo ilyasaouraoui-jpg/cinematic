@@ -7,6 +7,8 @@ import {
   setActiveProfileId,
   createProfile,
   deleteProfile,
+  DEFAULT_PIN,
+  isValidPin,
   type Profile,
   AVATAR_COLORS,
 } from "../lib/profiles";
@@ -125,11 +127,12 @@ function ProfileFormModal({
   open: boolean;
   editProfile: Profile | null;
   onClose: () => void;
-  onSave: (name: string, color: string, isKids: boolean) => void;
+  onSave: (name: string, color: string, isKids: boolean, pin: string) => void;
 }) {
   const [name, setName] = useState("");
   const [colorIdx, setColorIdx] = useState(0);
   const [isKids, setIsKids] = useState(false);
+  const [pin, setPin] = useState(DEFAULT_PIN);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -139,10 +142,12 @@ function ProfileFormModal({
         const idx = AVATAR_COLORS.indexOf(editProfile.avatarColor);
         setColorIdx(idx >= 0 ? idx : 0);
         setIsKids(editProfile.isKids);
+        setPin(isValidPin(editProfile.pin) ? editProfile.pin : DEFAULT_PIN);
       } else {
         setName("");
         setColorIdx(Math.floor(Math.random() * AVATAR_COLORS.length));
         setIsKids(false);
+        setPin(DEFAULT_PIN);
       }
       setTimeout(() => inputRef.current?.focus(), 100);
     }
@@ -224,12 +229,31 @@ function ProfileFormModal({
               onChange={(e) => setName(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && name.trim())
-                  onSave(name.trim(), AVATAR_COLORS[colorIdx], isKids);
+                  onSave(name.trim(), AVATAR_COLORS[colorIdx], isKids, pin);
               }}
               placeholder="e.g. Ahmed"
               maxLength={24}
               className="w-full rounded-xl border border-white/12 bg-white/[0.05] px-4 py-2.5 text-[14px] text-white placeholder:text-white/30 focus:border-neon-400/50 focus:outline-none focus:ring-2 focus:ring-neon-400/20"
             />
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-[12px] font-medium text-white/50">
+              Profile PIN
+            </label>
+            <input
+              value={pin}
+              onChange={(e) =>
+                setPin(e.target.value.replace(/\D/g, "").slice(0, 4))
+              }
+              inputMode="numeric"
+              placeholder="4-digit PIN"
+              maxLength={4}
+              className="w-full rounded-xl border border-white/12 bg-white/[0.05] px-4 py-2.5 text-[14px] tracking-[0.6em] text-white placeholder:tracking-normal placeholder:text-white/30 focus:border-neon-400/50 focus:outline-none focus:ring-2 focus:ring-neon-400/20"
+            />
+            <span className="mt-1 block text-[11px] text-white/35">
+              Asked when switching to this profile
+            </span>
           </div>
 
           <label className="flex cursor-pointer items-center justify-between rounded-xl border border-white/[0.06] bg-white/[0.03] px-4 py-3 transition-colors hover:bg-white/[0.06]">
@@ -266,7 +290,8 @@ function ProfileFormModal({
           </button>
           <button
             onClick={() => {
-              if (name.trim()) onSave(name.trim(), AVATAR_COLORS[colorIdx], isKids);
+              if (name.trim())
+                onSave(name.trim(), AVATAR_COLORS[colorIdx], isKids, pin);
             }}
             disabled={!name.trim()}
             className="rounded-xl bg-neon-600 px-5 py-2 text-[13px] font-semibold text-white shadow-lg shadow-neon-600/20 transition-all hover:bg-neon-500 disabled:cursor-not-allowed disabled:opacity-40"
@@ -292,18 +317,19 @@ export function ProfileSelector({
     setProfiles(loadProfiles());
   }, []);
 
-  const handleSaveProfile = (name: string, color: string, isKids: boolean) => {
+  const handleSaveProfile = (name: string, color: string, isKids: boolean, pin: string) => {
+    const safePin = isValidPin(pin) ? pin : DEFAULT_PIN;
     if (editingProfile) {
       const updated = profiles.map((p) =>
         p.id === editingProfile.id
-          ? { ...p, name, avatarColor: color, isKids }
+          ? { ...p, name, avatarColor: color, isKids, pin: safePin }
           : p
       );
       saveProfiles(updated);
       setProfiles(updated);
       setEditingProfile(null);
     } else {
-      const newProfile = createProfile(name, color, isKids);
+      const newProfile = createProfile(name, color, isKids, safePin);
       const updated = [...profiles, newProfile];
       saveProfiles(updated);
       setProfiles(updated);

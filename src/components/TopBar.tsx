@@ -21,6 +21,8 @@ export function TopBar({
   activeProfile,
   onSwitchProfile,
   onLogout,
+  authed = true,
+  onSignIn,
 }: {
   onOpen: (t: Title) => void;
   onGoSearch: (q: string) => void;
@@ -29,6 +31,8 @@ export function TopBar({
   activeProfile?: Profile | null;
   onSwitchProfile?: (profile: Profile) => void;
   onLogout?: () => void;
+  authed?: boolean;
+  onSignIn?: () => void;
 }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -258,13 +262,22 @@ export function TopBar({
             <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-neon-400" />
           </button>
 
+          {/* Guest sign in */}
+          {!authed && (
+            <button
+              onClick={onSignIn}
+              className="rounded-full bg-white px-4 py-1.5 text-[13px] font-semibold text-black transition-colors hover:bg-white/85"
+            >
+              Sign in
+            </button>
+          )}
+
           {/* Profile switcher */}
           {activeProfile && onSwitchProfile && (
             <ProfileSwitcher
               activeProfile={activeProfile}
               onSelectProfile={onSwitchProfile}
-              onManageProfiles={() => navigate("/profile")}
-              onAccount={() => navigate("/settings")}
+              onSettings={() => navigate("/settings")}
               onHelpCenter={() => window.open("https://help.cinematic.com", "_blank")}
               onSignOut={() => {
                 if (onLogout) onLogout();
@@ -315,7 +328,9 @@ export function TopBar({
               )}
               <div className="h-px bg-white/[0.08]" />
               <div className="mt-2 space-y-0.5">
-                {navLinks.map(({ path, label }) => (
+                {navLinks
+                  .filter(({ path }) => path !== "/mylist")
+                  .map(({ path, label }) => (
                   <button
                     key={path}
                     onClick={() => {

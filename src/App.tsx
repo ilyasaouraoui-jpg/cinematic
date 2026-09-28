@@ -20,7 +20,7 @@ import {
   setActiveProfileId,
   type Profile,
 } from "./lib/profiles";
-import { WatchlistProvider } from "./context/WatchlistContext";
+import { WatchlistProvider, useWatchlist, type WatchlistItem } from "./context/WatchlistContext";
 import { filterKids, KIDS_GENRE_PARAM } from "./lib/kidsFilter";
 
 export interface PlayerState {
@@ -29,6 +29,36 @@ export interface PlayerState {
   title: string;
   season?: number;
   episode?: number;
+}
+
+function AuthContinuation({
+  ready,
+  pendingSave,
+  pendingNav,
+  onConsume,
+}: {
+  ready: boolean;
+  pendingSave: WatchlistItem | null;
+  pendingNav: string | null;
+  onConsume: () => void;
+}) {
+  const { add } = useWatchlist();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!ready) return;
+    if (pendingSave) {
+      add(pendingSave);
+      onConsume();
+      return;
+    }
+    if (pendingNav) {
+      navigate(pendingNav);
+      onConsume();
+    }
+  }, [ready, pendingSave, pendingNav, add, navigate, onConsume]);
+
+  return null;
 }
 
 function HomePage({
@@ -40,6 +70,8 @@ function HomePage({
   trendingItems: Title[];
   isKids?: boolean;
 }) {
+  const { has, toggle } = useWatchlist();
+
   const play = () => {
     if (trendingItems.length > 0) openDetail(trendingItems[0]);
   };
@@ -76,6 +108,8 @@ function HomePage({
         }}
         trending={trendingItems}
         isKids={isKids}
+        isSaved={(t) => has(t.id)}
+        onToggleSave={toggle}
       />
       <div className="relative z-10 -mt-6 pb-16">
         {homeRows.map((r) => (
@@ -126,7 +160,15 @@ export function App() {
     email: string;
     token: string;
   } | null>(null);
-  const [authed, setAuthed] = useState(false);
+  const [authed, setAuthed] = useState(() => {
+    try {
+      return !!(
+        localStorage.getItem("token") && localStorage.getItem("user")
+      );
+    } catch {
+      return false;
+    }
+  });
   const [activeProfile, setActiveProfile] = useState<Profile | null>(null);
   const [profileSelected, setProfileSelected] = useState(false);
   const [detail, setDetail] = useState<Title | null>(null);
@@ -134,6 +176,9 @@ export function App() {
   const [trendingItems, setTrendingItems] = useState<Title[]>([]);
   const [searchResults, setSearchResults] = useState<Title[]>([]);
   const [detailEmbedUrl, setDetailEmbedUrl] = useState<string | null>(null);
+  const [showAuth, setShowAuth] = useState(false);
+  const [pendingSave, setPendingSave] = useState<WatchlistItem | null>(null);
+  const [pendingNav, setPendingNav] = useState<string | null>(null);
   const [playerState, setPlayerState] = useState<PlayerState>({
     open: false,
     embedUrl: null,
@@ -180,6 +225,40 @@ export function App() {
     setActiveProfileId(profile.id);
   };
 
+  const requireAuth = useCallback((item?: WatchlistItem) => {
+    setPendingSave(item ?? null);
+    setShowAuth(true);
+  }, []);
+
+  const cancelAuth = useCallback(() => {
+    setShowAuth(false);
+    setPendingSave(null);
+    setPendingNav(null);
+  }, []);
+
+  const consumePending = useCallback(() => {
+    setPendingSave(null);
+    setPendingNav(null);
+  }, []);
+
+  const handleLogout = useCallback(() => {
+    setUser(null);
+    setAuthed(false);
+    setProfileSelected(false);
+    setActiveProfile(null);
+    navigate("/");
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+  }, [navigate]);
+
+  useEffect(() => {
+    if (location.pathname === "/mylist" && !authed) {
+      setPendingNav("/mylist");
+      setShowAuth(true);
+      navigate("/", { replace: true });
+    }
+  }, [location.pathname, authed, navigate]);
+
   const isKids = !!activeProfile?.isKids;
   const visibleTrending = isKids ? filterKids(trendingItems) : trendingItems;
 
@@ -219,8 +298,8 @@ export function App() {
   }, [isKids]);
 
   useEffect(() => {
-    if (authed) fetchTrending();
-  }, [authed, fetchTrending]);
+    fetchTrending();
+  }, [fetchTrending]);
   useEffect(() => {
     window.scrollTo({ top: 0 });
   }, [location.pathname]);
@@ -239,9 +318,7 @@ export function App() {
     localStorage.setItem("user", JSON.stringify(userData));
   };
 
-  if (!authed) return <AuthPage onAuth={handleAuth} />;
-
-  if (!profileSelected) {
+  if (authed && !profileSelected) {
     return <ProfileSelector onSelect={handleProfileSelect} />;
   }
 
@@ -297,7 +374,11 @@ export function App() {
   };
 
   return (
-    <WatchlistProvider profileId={activeProfile?.id || null}>
+    <WatchlistProvider
+      profileId={activeProfile?.id || null}
+      isAuthed={authed}
+      onRequireAuth={requireAuth}
+    >
       <div className="relative min-h-svh bg-ink-950">
         <div className="pointer-events-none fixed left-1/4 top-0 -z-0 h-[50vh] w-[50vh] rounded-full bg-neon-600/12 blur-[140px]" />
         <TopBar
@@ -305,16 +386,11 @@ export function App() {
           onGoSearch={goSearch}
           searchResults={searchResults}
           user={user}
+          authed={authed}
+          onSignIn={() => setShowAuth(true)}
           activeProfile={activeProfile}
           onSwitchProfile={handleSwitchProfile}
-          onLogout={() => {
-            setUser(null);
-            setAuthed(false);
-            setProfileSelected(false);
-            navigate("/");
-            localStorage.removeItem("token");
-            localStorage.removeItem("user");
-          }}
+          onLogout={handleLogout}
         />
         <main className="relative w-full">
           <AnimatePresence mode="wait">
@@ -392,14 +468,7 @@ export function App() {
                       onOpen={openTitlePage}
                       onPlay={play}
                       user={user}
-                      onLogout={() => {
-                        setUser(null);
-                        setAuthed(false);
-                        setProfileSelected(false);
-                        navigate("/");
-                        localStorage.removeItem("token");
-                        localStorage.removeItem("user");
-                      }}
+                      onLogout={handleLogout}
                     />
                   }
                 />
@@ -438,6 +507,26 @@ export function App() {
           season={playerState.season}
           episode={playerState.episode}
         />
+
+        <AuthContinuation
+          ready={authed && profileSelected}
+          pendingSave={pendingSave}
+          pendingNav={pendingNav}
+          onConsume={consumePending}
+        />
+
+        {showAuth && !authed && (
+          <div className="fixed inset-0 z-[9999] overflow-y-auto bg-ink-950">
+            <AuthPage onAuth={handleAuth} />
+            <button
+              onClick={cancelAuth}
+              aria-label="Close"
+              className="fixed right-4 top-4 z-[10000] grid h-10 w-10 place-items-center rounded-full bg-black/60 text-white/70 ring-1 ring-white/15 transition hover:bg-black/80 hover:text-white"
+            >
+              ✕
+            </button>
+          </div>
+        )}
       </div>
     </WatchlistProvider>
   );

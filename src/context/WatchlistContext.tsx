@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useMemo, type ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, type ReactNode } from "react";
 
 export interface WatchlistItem {
   id: string;
@@ -44,17 +44,29 @@ function saveToStorage(profileId: string | null, items: WatchlistItem[]): void {
 
 export function WatchlistProvider({
   profileId,
+  isAuthed = true,
+  onRequireAuth,
   children,
 }: {
   profileId: string | null;
+  isAuthed?: boolean;
+  onRequireAuth?: (item: WatchlistItem) => void;
   children: ReactNode;
 }) {
   const [items, setItems] = useState<WatchlistItem[]>(() => loadFromStorage(profileId));
 
   const stableProfileId = profileId;
 
+  useEffect(() => {
+    setItems(loadFromStorage(profileId));
+  }, [profileId]);
+
   const toggle = useCallback(
     (item: WatchlistItem) => {
+      if (!isAuthed) {
+        onRequireAuth?.(item);
+        return;
+      }
       setItems((prev) => {
         const exists = prev.some((i) => String(i.id) === String(item.id));
         const next = exists
@@ -64,11 +76,15 @@ export function WatchlistProvider({
         return next;
       });
     },
-    [stableProfileId]
+    [stableProfileId, isAuthed, onRequireAuth]
   );
 
   const add = useCallback(
     (item: WatchlistItem) => {
+      if (!isAuthed) {
+        onRequireAuth?.(item);
+        return;
+      }
       setItems((prev) => {
         if (prev.some((i) => String(i.id) === String(item.id))) return prev;
         const next = [...prev, item];
@@ -76,7 +92,7 @@ export function WatchlistProvider({
         return next;
       });
     },
-    [stableProfileId]
+    [stableProfileId, isAuthed, onRequireAuth]
   );
 
   const remove = useCallback(
