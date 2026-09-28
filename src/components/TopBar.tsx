@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { Search, Bell, Menu, X } from "lucide-react";
+import { Search, Bell, Menu, X, CircleUserRound } from "lucide-react";
 import { library, type Title } from "../data";
 import { cn } from "../utils/cn";
 import { ProfileSwitcher } from "./ProfileSwitcher";
@@ -266,9 +266,11 @@ export function TopBar({
           {!authed && (
             <button
               onClick={onSignIn}
-              className="rounded-full bg-white px-4 py-1.5 text-[13px] font-semibold text-black transition-colors hover:bg-white/85"
+              title="Sign in"
+              aria-label="Sign in"
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/20 text-white/75 transition-colors hover:border-white/45 hover:bg-white/10 hover:text-white"
             >
-              Sign in
+              <CircleUserRound className="h-5 w-5" strokeWidth={1.6} />
             </button>
           )}
 
