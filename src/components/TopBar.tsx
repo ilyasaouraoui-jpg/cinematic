@@ -6,6 +6,7 @@ import { library, type Title } from "../data";
 import { cn } from "../utils/cn";
 import { ProfileSwitcher } from "./ProfileSwitcher";
 import { ProfileAvatar } from "./ProfileAvatar";
+import { LogoMark } from "./LogoMark";
 import type { Profile } from "../lib/profiles";
 import { isKidsSafe } from "../lib/kidsFilter";
 
@@ -92,9 +93,13 @@ export function TopBar({
           {/* Logo */}
           <button
             onClick={() => navigate("/")}
-            className="shrink-0 font-display text-[18px] font-bold tracking-wide text-neon-400 transition-colors hover:text-neon-300"
+            aria-label="Cinematic home"
+            className="flex shrink-0 items-center gap-2 transition-colors"
           >
-            CINEMATIC
+            <LogoMark className="h-7 w-7" />
+            <span className="font-display text-[18px] font-bold tracking-wide text-neon-400 transition-colors hover:text-neon-300">
+              CINEMATIC
+            </span>
           </button>
 
           {/* Desktop nav links */}
