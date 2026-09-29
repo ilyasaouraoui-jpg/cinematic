@@ -1,0 +1,43 @@
+Proprietary License — All Rights Reserved
+
+Copyright (c) 2026 Ilass AOURAOUI. All rights reserved.
+
+This repository and all associated source code, markup, styling, assets,
+documentation, and configuration files (the "Work") are the sole and
+exclusive property of the author.
+
+1. Purpose
+   This Work is published solely for demonstration, educational, and
+   portfolio-review purposes. Access to the source code is provided for
+   viewing and evaluation only.
+
+2. Restrictions
+   Except with the prior written permission of the author, you may NOT:
+
+   a. Copy, clone, fork, or duplicate this repository or any part of it;
+   b. Redistribute, publish, sublicense, sell, rent, or otherwise
+      commercialize the Work or derivative works thereof;
+   c. Remove or alter any copyright, license, or attribution notices;
+   d. Claim authorship of, or present the Work as your own.
+
+3. Permitted Use
+   You may view the source code and run the application locally for
+   non-commercial, evaluative purposes (e.g., reviewing a portfolio
+   project). Automated scraping, bulk downloading, or systematic
+   extraction of the codebase is prohibited.
+
+4. Third-Party Content
+   Movie/TV metadata, posters, and thumbnails are fetched at runtime from
+   third-party public APIs (primarily TMDB). Such content remains the
+   property of its respective owners and is not covered by this license.
+   The Work does not host, upload, or store any copyrighted media files.
+
+5. No Warranty
+   THE WORK IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL
+   THE AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY ARISING
+   FROM, OUT OF, OR IN CONNECTION WITH THE WORK OR ITS USE.
+
+By using this repository you acknowledge that you have read and agree to
+the terms of this license. For permission requests, contact the author.

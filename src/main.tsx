@@ -5,8 +5,11 @@ import ReactGA from "react-ga4";
 import "./index.css";
 import App from "./App";
 
-ReactGA.initialize(import.meta.env.VITE_GA_ID || "G-NZ2WJ2KQMH");
-ReactGA.send("pageview");
+const gaId = import.meta.env.VITE_GA_ID;
+if (gaId) {
+  ReactGA.initialize(gaId);
+  ReactGA.send("pageview");
+}
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

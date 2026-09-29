@@ -1,10 +1,32 @@
+# Dependencies
 node_modules/
-dist/
 backend/node_modules/
+
+# Build output
+dist/
+.next/
+out/
 backend/public/
+
+# Environment & secrets — only *.example templates are tracked
+.env
+.env.local
+.env.*.local
 backend/.env
+backend/.env.local
+
+# Local test media (never commit)
+*.mp4
+*.mkv
+*.webm
+*.mov
+*.avi
+test-media/
+media/
+
+# Deployment
 .vercel/
+
+# Logs & OS
 *.log
 .DS_Store
-
-.vercel
