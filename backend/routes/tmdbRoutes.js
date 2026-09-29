@@ -10,6 +10,7 @@ const {
   getEpisodeEmbed,
   getSimilar,
   getPopular,
+  getVideos,
 } = require("../controllers/tmdbController");
 
 router.get("/trending/:time_window", getTrending);
@@ -21,5 +22,6 @@ router.get("/discover", getDiscover);
 router.get("/popular/:media_type", getPopular);
 router.get("/genres", getGenres);
 router.get("/similar/:id", getSimilar);
+router.get("/videos/:id", getVideos);
 
 module.exports = router;

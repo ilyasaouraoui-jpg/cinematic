@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { X, Play, Plus, Check, Star, ThumbsUp, Share2, ChevronDown, Loader2 } from "lucide-react";
+import { X, Play, Plus, Check, Star, ThumbsUp, Share2, ChevronDown, Loader2, Clapperboard } from "lucide-react";
 import type { Title } from "../data";
 import { tmdbAPI, type TMDBSeason, type TMDBEpisode } from "../api";
 import { useWatchlist, type WatchlistItem } from "../context/WatchlistContext";
 import { cn } from "../utils/cn";
+import { TrailerModal } from "./TrailerModal";
+import { trailerLabels } from "../lib/i18n";
 
 export function DetailModal({
   item,
@@ -25,6 +27,8 @@ export function DetailModal({
   const [selectedSeason, setSelectedSeason] = useState(1);
   const [episodesLoading, setEpisodesLoading] = useState(false);
   const [seasonDropdownOpen, setSeasonDropdownOpen] = useState(false);
+  const [trailerOpen, setTrailerOpen] = useState(false);
+  const labels = trailerLabels();
 
   const { has, toggle } = useWatchlist();
 
@@ -48,6 +52,7 @@ export function DetailModal({
     : null;
 
   useEffect(() => {
+    setTrailerOpen(false);
     if (!item || !isSeries) return;
     setEpisodesLoading(true);
     const mediaType = (item as any).media_type || (item.kind === "series" ? "tv" : "movie");
@@ -76,8 +81,11 @@ export function DetailModal({
     }
   };
 
+  const mediaType = (item as any)?.media_type || (item?.kind === "series" ? "tv" : "movie");
+
   return (
-    <AnimatePresence>
+    <>
+      <AnimatePresence>
       {item && (
         <motion.div
           initial={{ opacity: 0 }}
@@ -147,6 +155,14 @@ export function DetailModal({
                   className="flex items-center gap-2 rounded-full bg-gradient-to-br from-neon-400 to-neon-600 px-5 py-2.5 text-[13px] font-semibold text-white neon-glow"
                 >
                   <Play className="h-4 w-4 fill-white" /> Play
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.04 }}
+                  whileTap={{ scale: 0.96 }}
+                  onClick={() => setTrailerOpen(true)}
+                  className="flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.06] px-5 py-2.5 text-[13px] font-semibold text-white/85 backdrop-blur-md transition hover:bg-white/[0.13]"
+                >
+                  <Clapperboard className="h-4 w-4" /> {labels.watch}
                 </motion.button>
                 <motion.button
                   whileHover={{ scale: 1.1 }}
@@ -252,6 +268,17 @@ export function DetailModal({
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>
+      </AnimatePresence>
+
+      {item && (
+        <TrailerModal
+          open={trailerOpen}
+          onClose={() => setTrailerOpen(false)}
+          title={item.name}
+          tmdbId={item.id}
+          mediaType={mediaType}
+        />
+      )}
+    </>
   );
 }

@@ -2,13 +2,15 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowLeft, Play, Plus, Check, Share2, Star, ChevronDown, Loader2, Clock, Tv, X,
+  ArrowLeft, Play, Plus, Check, Share2, Star, ChevronDown, Loader2, Clock, Tv, X, Clapperboard,
 } from "lucide-react";
 import { tmdbAPI, type TMDBDetails, type TMDBSeason, type TMDBEpisode, type TMDBTitle, tmdbToTitle } from "../api";
 import type { Title } from "../data";
 import { PosterCard } from "./PosterCard";
 import { cn } from "../utils/cn";
 import { useWatchlist, type WatchlistItem } from "../context/WatchlistContext";
+import { TrailerModal } from "./TrailerModal";
+import { trailerLabels } from "../lib/i18n";
 
 export function TitlePage({
   onOpen,
@@ -30,6 +32,8 @@ export function TitlePage({
   const [similarLoading, setSimilarLoading] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [activeEmbedUrl, setActiveEmbedUrl] = useState<string | null>(null);
+  const [trailerOpen, setTrailerOpen] = useState(false);
+  const labels = trailerLabels();
 
   const mediaType = type === "tv" ? "tv" : "movie";
 
@@ -123,6 +127,7 @@ export function TitlePage({
   }, [fetchDetails, fetchSeasons, fetchSimilar]);
 
   useEffect(() => { window.scrollTo({ top: 0 }); }, [id]);
+  useEffect(() => { setTrailerOpen(false); }, [id]);
 
   const currentSeason = seasons.find((s) => s.season === selectedSeason);
   const episodes: TMDBEpisode[] = currentSeason?.episodesList || [];
@@ -216,6 +221,15 @@ export function TitlePage({
                 <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }} onClick={handlePlayAll} className="flex items-center gap-2 rounded-full bg-gradient-to-br from-neon-400 to-neon-600 px-6 py-3 text-sm font-semibold text-white neon-glow">
                   <Play className="h-5 w-5 fill-white" />
                   {playing ? "Replay" : `Play ${mediaType === "tv" ? "S1 E1" : "Now"}`}
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.04 }}
+                  whileTap={{ scale: 0.96 }}
+                  onClick={() => setTrailerOpen(true)}
+                  className="flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.08] px-5 py-3 text-sm font-semibold text-white/90 backdrop-blur-md transition hover:bg-white/[0.16]"
+                >
+                  <Clapperboard className="h-4.5 w-4.5" />
+                  {labels.watch}
                 </motion.button>
                 <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.92 }} onClick={() => watchlistItem && toggle(watchlistItem)} className={cn("grid h-11 w-11 place-items-center rounded-full border backdrop-blur-md transition-colors", saved ? "border-white/40 bg-white/25 text-white" : "border-white/15 bg-white/[0.08] text-white/80 hover:bg-white/16")}>
                   {saved ? <Check className="h-5 w-5 fill-white" /> : <Plus className="h-5 w-5" />}
@@ -407,6 +421,14 @@ export function TitlePage({
           )}
         </motion.div>
       </div>
+
+      <TrailerModal
+        open={trailerOpen}
+        onClose={() => setTrailerOpen(false)}
+        title={details.title}
+        tmdbId={details.tmdb_id || id || ""}
+        mediaType={mediaType}
+      />
     </div>
   );
 }

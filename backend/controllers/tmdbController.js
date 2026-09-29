@@ -145,6 +145,55 @@ const getDetails = async (req, res) => {
   }
 };
 
+const getVideos = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { type = "movie" } = req.query;
+
+    if (!/^\d+$/.test(String(id))) {
+      return res.json({ found: false, key: null, name: null, type: null, url: null });
+    }
+
+    const endpoint = type === "tv" ? `/tv/${id}/videos` : `/movie/${id}/videos`;
+    const { data } = await tmdb.get(endpoint, { params: { language: "en-US" } });
+
+    const candidates = (data.results || []).filter(
+      (v) => v.site === "YouTube" && (v.type === "Trailer" || v.type === "Teaser")
+    );
+
+    const score = (v) => [
+      v.type === "Trailer" ? 2 : 1,
+      v.official ? 1 : 0,
+      (v.iso_639_1 || "") === "en" ? 1 : 0,
+    ];
+
+    const best = candidates.sort((a, b) => {
+      const sa = score(a);
+      const sb = score(b);
+      for (let i = 0; i < sa.length; i++) {
+        if (sa[i] !== sb[i]) return sb[i] - sa[i];
+      }
+      return 0;
+    })[0];
+
+    res.json({
+      found: !!best,
+      key: best?.key || null,
+      name: best?.name || null,
+      type: best?.type || null,
+      official: best?.official || false,
+      url: best ? `https://www.youtube.com/watch?v=${best.key}` : null,
+      total: (data.results || []).length,
+    });
+  } catch (error) {
+    if (error.response?.status === 404) {
+      return res.json({ found: false, key: null, name: null, type: null, url: null });
+    }
+    console.error("[VIDEOS]", error.message);
+    res.status(500).json({ message: "Failed to fetch videos", error: error.message });
+  }
+};
+
 const getTrending = async (req, res) => {
   try {
     const { time_window = "week" } = req.params;
@@ -350,4 +399,5 @@ module.exports = {
   getEpisodeEmbed,
   getSimilar,
   getPopular,
+  getVideos,
 };

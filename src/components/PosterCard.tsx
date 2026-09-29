@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { Play, Plus, Check, Star } from "lucide-react";
+import { Play, Plus, Check, Star, Clapperboard } from "lucide-react";
 import type { Title } from "../data";
 import { cn } from "../utils/cn";
 import { useWatchlist, type WatchlistItem } from "../context/WatchlistContext";
+import { TrailerModal } from "./TrailerModal";
 
 const badgeStyles: Record<string, string> = {
   S: "bg-gradient-to-br from-neon-400 to-neon-600 text-white",
@@ -26,6 +28,7 @@ export function PosterCard({
 }) {
   const { has, toggle } = useWatchlist();
   const saved = has(item.id);
+  const [trailerOpen, setTrailerOpen] = useState(false);
 
   const watchlistItem: WatchlistItem = {
     id: String(item.id),
@@ -41,7 +44,10 @@ export function PosterCard({
     media_type: (item as any).media_type,
   };
 
+  const mediaType = (item as any).media_type || (item.kind === "series" ? "tv" : "movie");
+
   return (
+    <>
     <motion.article
       initial={{ opacity: 0, y: 22 }}
       whileInView={{ opacity: 1, y: 0 }}
@@ -93,6 +99,16 @@ export function PosterCard({
             <button
               onClick={(e) => {
                 e.stopPropagation();
+                setTrailerOpen(true);
+              }}
+              title="Watch Trailer"
+              className="grid h-8 w-8 place-items-center rounded-full border border-white/25 bg-black/60 text-white backdrop-blur-md transition-transform hover:scale-110"
+            >
+              <Clapperboard className="h-[13px] w-[13px]" />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
                 toggle(watchlistItem);
               }}
               className={cn(
@@ -128,5 +144,14 @@ export function PosterCard({
         </p>
       </div>
     </motion.article>
+
+    <TrailerModal
+      open={trailerOpen}
+      onClose={() => setTrailerOpen(false)}
+      title={item.name}
+      tmdbId={item.id}
+      mediaType={mediaType}
+    />
+    </>
   );
 }

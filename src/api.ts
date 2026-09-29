@@ -48,6 +48,8 @@ export const tmdbAPI = {
     API.get(`/tmdb/embed/${tmdbId}/season/${season}/episode/${episode}`),
   similar: (id: number | string, type = "movie") =>
     API.get(`/tmdb/similar/${id}`, { params: { type } }),
+  videos: (id: number | string, type = "movie") =>
+    API.get(`/tmdb/videos/${id}`, { params: { type } }),
   popular: (mediaType = "movie") => API.get(`/tmdb/popular/${mediaType}`),
 };
 
