@@ -16,7 +16,13 @@ declare global {
 const P = IMG.posters;
 const collage = [P[0], P[2], P[3], P[5], P[4], P[1], P[6], P[2], P[3], P[5], P[0], P[4], P[6], P[1], P[5], P[3]];
 
-export function AuthPage({ onAuth }: { onAuth: (user: { name: string; email: string; token: string }) => void }) {
+export function AuthPage({
+  onAuth,
+  onGuest,
+}: {
+  onAuth: (user: { name: string; email: string; token: string }) => void;
+  onGuest?: () => void;
+}) {
   const [mode, setMode] = useState<"in" | "up">("in");
   const [show, setShow] = useState(false);
   const [email, setEmail] = useState("");
@@ -94,6 +100,10 @@ export function AuthPage({ onAuth }: { onAuth: (user: { name: string; email: str
   };
 
   const handleSkipLogin = () => {
+    if (onGuest) {
+      onGuest();
+      return;
+    }
     const fakeName = mode === "up" && name.trim() ? name.trim() : "User";
     onAuth({
       name: fakeName,

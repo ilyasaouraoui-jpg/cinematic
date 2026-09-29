@@ -7,7 +7,6 @@ import {
   setActiveProfileId,
   createProfile,
   deleteProfile,
-  ensureDefaultProfiles,
   isValidPin,
   DEFAULT_PIN,
   type Profile,
@@ -46,6 +45,22 @@ function getManageLabel(manage: boolean): string {
   const isAr = lang.startsWith("ar");
   if (isAr) return manage ? "تم" : "إدارة الملفات الشخصية";
   return manage ? "Done" : "Manage profiles";
+}
+
+function firstProfileCopy() {
+  const lang = (
+    localStorage.getItem("lang") ||
+    (typeof navigator !== "undefined" ? navigator.language : "en") ||
+    "en"
+  ).toLowerCase();
+  const isAr = lang.startsWith("ar");
+  return {
+    isAr,
+    title: isAr ? "أنشئ ملفك الشخصي الأول" : "Create your first profile",
+    subtitle: isAr
+      ? "تُحفظ قوائمك ووضع الأطفال وقفل PIN في حسابك أنت — ولن يطّلع عليها أي حساب آخر."
+      : "Your watchlist, kids mode and PIN locks live in this account only — no other account can see them.",
+  };
 }
 
 function ProfileAvatarCard({
@@ -398,8 +413,13 @@ export function ProfileSelector({
   const [manage, setManage] = useState(false);
 
   useEffect(() => {
-    setProfiles(ensureDefaultProfiles());
+    setProfiles(loadProfiles());
   }, []);
+
+  const openAddProfile = () => {
+    setEditingProfile(null);
+    setShowModal(true);
+  };
 
   const handleSaveProfile = (
     name: string,
@@ -445,57 +465,77 @@ export function ProfileSelector({
     onSelect(profile);
   };
 
+  const isEmpty = profiles.length === 0;
+  const copy = firstProfileCopy();
+
   return (
     <div className="fixed inset-0 z-[9998] flex flex-col items-center justify-center bg-[#141414]">
       <div className="relative z-10 w-full max-w-4xl px-4">
-        <GateTitle />
-
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.5 }}
-          className="flex flex-wrap items-start justify-center gap-5 sm:gap-7"
-        >
-          {profiles.map((profile) => (
-            <ProfileAvatarCard
-              key={profile.id}
-              profile={profile}
-              manage={manage}
-              onClick={() => requestSelect(profile)}
-              onEdit={() => {
-                setEditingProfile(profile);
-                setShowModal(true);
-              }}
-              onDelete={() => handleDeleteProfile(profile.id)}
-              canDelete={profiles.length > 1}
-            />
-          ))}
-
-          <AddProfileCard
-            onClick={() => {
-              setEditingProfile(null);
-              setShowModal(true);
-            }}
-          />
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.45 }}
-          className="mt-10 flex justify-center"
-        >
-          <button
-            onClick={() => setManage((m) => !m)}
-            className={`rounded-md border px-6 py-2 text-[13px] font-medium transition-colors ${
-              manage
-                ? "border-neon-400/70 bg-neon-500/15 text-neon-300 hover:bg-neon-500/25"
-                : "border-white/35 text-white/75 hover:border-white/60 hover:bg-white/[0.07] hover:text-white"
-            }`}
+        {isEmpty ? (
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="flex flex-col items-center text-center"
           >
-            {getManageLabel(manage)}
-          </button>
-        </motion.div>
+            <h1
+              lang={copy.isAr ? "ar" : "en"}
+              className="mb-4 text-center font-display text-4xl font-semibold tracking-tight text-white sm:text-5xl md:text-6xl"
+            >
+              {copy.title}
+            </h1>
+            <p className="mb-10 max-w-lg text-[14px] leading-relaxed text-white/50">
+              {copy.subtitle}
+            </p>
+            <AddProfileCard onClick={openAddProfile} />
+          </motion.div>
+        ) : (
+          <>
+            <GateTitle />
+
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2, duration: 0.5 }}
+              className="flex flex-wrap items-start justify-center gap-5 sm:gap-7"
+            >
+              {profiles.map((profile) => (
+                <ProfileAvatarCard
+                  key={profile.id}
+                  profile={profile}
+                  manage={manage}
+                  onClick={() => requestSelect(profile)}
+                  onEdit={() => {
+                    setEditingProfile(profile);
+                    setShowModal(true);
+                  }}
+                  onDelete={() => handleDeleteProfile(profile.id)}
+                  canDelete={profiles.length > 1}
+                />
+              ))}
+
+              <AddProfileCard onClick={openAddProfile} />
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.45 }}
+              className="mt-10 flex justify-center"
+            >
+              <button
+                onClick={() => setManage((m) => !m)}
+                className={`rounded-md border px-6 py-2 text-[13px] font-medium transition-colors ${
+                  manage
+                    ? "border-neon-400/70 bg-neon-500/15 text-neon-300 hover:bg-neon-500/25"
+                    : "border-white/35 text-white/75 hover:border-white/60 hover:bg-white/[0.07] hover:text-white"
+                }`}
+              >
+                {getManageLabel(manage)}
+              </button>
+            </motion.div>
+          </>
+        )}
       </div>
 
       <PinModal

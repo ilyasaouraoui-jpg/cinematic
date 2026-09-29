@@ -34,16 +34,62 @@ function toSolidColor(value: string): string {
   return value;
 }
 
-const PROFILES_KEY = "profiles";
-const ACTIVE_PROFILE_KEY = "activeProfileId";
+const PROFILES_PREFIX = "profiles_";
+const ACTIVE_PROFILE_PREFIX = "activeProfileId_";
+const LEGACY_PROFILES_KEY = "profiles";
+const LEGACY_ACTIVE_PROFILE_KEY = "activeProfileId";
 
 function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 }
 
-export function loadProfiles(): Profile[] {
+/**
+ * Guest / "Skip for now" sessions get a temporary `local-*` token and must
+ * never read or write persistent profiles.
+ */
+export function isGuestSession(): boolean {
   try {
-    const raw = localStorage.getItem(PROFILES_KEY);
+    return localStorage.getItem("token")?.startsWith("local-") === true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Stable per-account identity (lowercased email). Returns null when signed
+ * out or in guest mode — profile storage is then inaccessible.
+ */
+export function getCurrentUserId(): string | null {
+  try {
+    if (isGuestSession()) return null;
+    if (!localStorage.getItem("token")) return null;
+    const raw = localStorage.getItem("user");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    const email =
+      typeof parsed?.email === "string" ? parsed.email.trim().toLowerCase() : "";
+    return email || null;
+  } catch {
+    return null;
+  }
+}
+
+/** Remove the old account-agnostic keys so profiles can never leak across users. */
+function cleanupLegacySharedKeys(): void {
+  try {
+    localStorage.removeItem(LEGACY_PROFILES_KEY);
+    localStorage.removeItem(LEGACY_ACTIVE_PROFILE_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+export function loadProfiles(): Profile[] {
+  cleanupLegacySharedKeys();
+  const uid = getCurrentUserId();
+  if (!uid) return [];
+  try {
+    const raw = localStorage.getItem(PROFILES_PREFIX + uid);
     const list: Profile[] = raw ? JSON.parse(raw) : [];
     let needsMigration = false;
     const migrated = list.map((p) => {
@@ -60,7 +106,7 @@ export function loadProfiles(): Profile[] {
       return next;
     });
     if (needsMigration) {
-      localStorage.setItem(PROFILES_KEY, JSON.stringify(migrated));
+      localStorage.setItem(PROFILES_PREFIX + uid, JSON.stringify(migrated));
     }
     return migrated;
   } catch {
@@ -69,19 +115,27 @@ export function loadProfiles(): Profile[] {
 }
 
 export function saveProfiles(profiles: Profile[]): void {
-  localStorage.setItem(PROFILES_KEY, JSON.stringify(profiles));
+  const uid = getCurrentUserId();
+  if (!uid) return;
+  localStorage.setItem(PROFILES_PREFIX + uid, JSON.stringify(profiles));
 }
 
 export function getActiveProfileId(): string | null {
-  return localStorage.getItem(ACTIVE_PROFILE_KEY);
+  const uid = getCurrentUserId();
+  if (!uid) return null;
+  return localStorage.getItem(ACTIVE_PROFILE_PREFIX + uid);
 }
 
 export function setActiveProfileId(id: string): void {
-  localStorage.setItem(ACTIVE_PROFILE_KEY, id);
+  const uid = getCurrentUserId();
+  if (!uid) return;
+  localStorage.setItem(ACTIVE_PROFILE_PREFIX + uid, id);
 }
 
 export function clearActiveProfileId(): void {
-  localStorage.removeItem(ACTIVE_PROFILE_KEY);
+  cleanupLegacySharedKeys();
+  const uid = getCurrentUserId();
+  if (uid) localStorage.removeItem(ACTIVE_PROFILE_PREFIX + uid);
 }
 
 export const EMOJI_AVATARS = [
@@ -98,17 +152,6 @@ export const EMOJI_AVATARS = [
   "🌈",
   "🤖",
 ];
-
-export function ensureDefaultProfiles(): Profile[] {
-  let list = loadProfiles();
-  if (list.length === 0) {
-    const normal = createProfile("Normal", AVATAR_COLORS[1], false, DEFAULT_PIN);
-    const kids = createProfile("Kids", AVATAR_COLORS[6], true, DEFAULT_PIN);
-    list = [normal, kids];
-    saveProfiles(list);
-  }
-  return list;
-}
 
 export function createProfile(
   name: string,
@@ -129,11 +172,13 @@ export function createProfile(
 }
 
 export function deleteProfile(id: string): void {
+  const uid = getCurrentUserId();
+  if (!uid) return;
   const profiles = loadProfiles().filter((p) => p.id !== id);
   saveProfiles(profiles);
   localStorage.removeItem(`watchlist_${id}`);
   if (getActiveProfileId() === id) {
-    localStorage.removeItem(ACTIVE_PROFILE_KEY);
+    localStorage.removeItem(ACTIVE_PROFILE_PREFIX + uid);
   }
 }
 

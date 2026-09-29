@@ -20,7 +20,7 @@ import { library, rows, type Title } from "../data";
 import { PosterCard } from "./PosterCard";
 import { cn } from "../utils/cn";
 import { tmdbAPI, type TMDBTitle, tmdbToTitle } from "../api";
-import { saveProfiles, isValidPin, ensureDefaultProfiles, type Profile } from "../lib/profiles";
+import { saveProfiles, isValidPin, loadProfiles, type Profile } from "../lib/profiles";
 import { PinModal } from "./PinModal";
 import { ProfileFormModal } from "./ProfileSelector";
 import { ProfileAvatar } from "./ProfileAvatar";
@@ -340,7 +340,7 @@ export function SettingsPage({
     kids_lock: false,
   });
 
-  const [profiles, setProfiles] = useState<Profile[]>(() => ensureDefaultProfiles());
+  const [profiles, setProfiles] = useState<Profile[]>(() => loadProfiles());
   const [pinTarget, setPinTarget] = useState<Profile | null>(null);
   const [editing, setEditing] = useState<Profile | null>(null);
 

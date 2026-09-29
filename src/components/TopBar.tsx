@@ -24,6 +24,7 @@ export function TopBar({
   onSwitchProfile,
   onLogout,
   authed = true,
+  guest = false,
   onSignIn,
 }: {
   onOpen: (t: Title) => void;
@@ -34,6 +35,7 @@ export function TopBar({
   onSwitchProfile?: (profile: Profile) => void;
   onLogout?: () => void;
   authed?: boolean;
+  guest?: boolean;
   onSignIn?: () => void;
 }) {
   const navigate = useNavigate();
@@ -268,8 +270,8 @@ export function TopBar({
             <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-neon-400" />
           </button>
 
-          {/* Guest sign in */}
-          {!authed && (
+          {/* Guest sign in (unauthenticated OR guest session without a profile) */}
+          {(!authed || (guest && !activeProfile)) && (
             <button
               onClick={onSignIn}
               title="Sign in"

@@ -15,10 +15,11 @@ import { AdvancedBrowsePage } from "./components/AdvancedBrowsePage";
 import { rows, type Title } from "./data";
 import { tmdbAPI, type TMDBTitle, tmdbToTitle } from "./api";
 import {
-  ensureDefaultProfiles,
+  loadProfiles,
   getActiveProfileId,
   setActiveProfileId,
   clearActiveProfileId,
+  isGuestSession,
   type Profile,
 } from "./lib/profiles";
 import { WatchlistProvider, useWatchlist, type WatchlistItem } from "./context/WatchlistContext";
@@ -205,16 +206,24 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    if (authed && !profileSelected && !forceGate) {
-      const list = ensureDefaultProfiles();
-      if (list.length === 0) return;
-      const savedId = getActiveProfileId();
-      const found = savedId ? list.find((p) => p.id === savedId) : null;
-      const pick = found || list[0];
-      setActiveProfile(pick);
+    if (!authed || profileSelected || forceGate) return;
+    // Guest / skip-login sessions never get persistent profiles.
+    if (isGuestSession()) {
       setProfileSelected(true);
-      setActiveProfileId(pick.id);
+      return;
     }
+    const list = loadProfiles();
+    // No profiles for this account yet -> show the create-first-profile gate.
+    if (list.length === 0) {
+      setForceGate(true);
+      return;
+    }
+    const savedId = getActiveProfileId();
+    const found = savedId ? list.find((p) => p.id === savedId) : null;
+    const pick = found || list[0];
+    setActiveProfile(pick);
+    setProfileSelected(true);
+    setActiveProfileId(pick.id);
   }, [authed, profileSelected, forceGate]);
 
   const handleProfileSelect = (profile: Profile) => {
@@ -247,11 +256,18 @@ export function App() {
   }, []);
 
   const handleLogout = useCallback(() => {
+    // Clear the scoped active-profile key while the user identity is still
+    // resolvable, then drop every trace of the session.
+    clearActiveProfileId();
     setUser(null);
     setAuthed(false);
     setProfileSelected(false);
     setForceGate(false);
     setActiveProfile(null);
+    setPendingSave(null);
+    setPendingNav(null);
+    setShowAuth(false);
+    setSearchResults([]);
     navigate("/");
     localStorage.removeItem("token");
     localStorage.removeItem("user");
@@ -330,14 +346,44 @@ export function App() {
     email: string;
     token: string;
   }) => {
+    const guest = userData.token.startsWith("local-");
     setUser(userData);
-    setAuthed(true);
-    setProfileSelected(false);
-    setForceGate(true);
-    setActiveProfile(null);
-    clearActiveProfileId();
     localStorage.setItem("user", JSON.stringify(userData));
+    setAuthed(true);
+    setActiveProfile(null);
+    setSearchResults([]);
+    if (guest) {
+      // Temporary guest session: skip the profile gate entirely.
+      setProfileSelected(true);
+      setForceGate(false);
+      clearActiveProfileId();
+    } else {
+      setProfileSelected(false);
+      setForceGate(true);
+      clearActiveProfileId();
+    }
+    navigate("/", { replace: true });
   };
+
+  const handleGuest = () => {
+    const token = "local-" + Date.now();
+    // Persist the temporary session so a reload stays in guest mode too.
+    localStorage.setItem("token", token);
+    handleAuth({
+      name: "Guest",
+      email: "guest@cinematic.local",
+      token,
+    });
+  };
+
+  const isGuest = authed && isGuestSession();
+
+  // Guests must never see the profile-selection page.
+  useEffect(() => {
+    if (isGuest && location.pathname === "/profiles") {
+      navigate("/", { replace: true });
+    }
+  }, [isGuest, location.pathname, navigate]);
 
   if (authed && !profileSelected && forceGate) {
     return <ProfileSelector onSelect={handleProfileSelect} />;
@@ -408,6 +454,7 @@ export function App() {
           searchResults={searchResults}
           user={user}
           authed={authed}
+          guest={isGuest}
           onSignIn={() => setShowAuth(true)}
           activeProfile={activeProfile}
           onSwitchProfile={handleSwitchProfile}
@@ -555,9 +602,9 @@ export function App() {
           onConsume={consumePending}
         />
 
-        {showAuth && !authed && (
+        {showAuth && (!authed || isGuest) && (
           <div className="fixed inset-0 z-[9999] overflow-y-auto bg-ink-950">
-            <AuthPage onAuth={handleAuth} />
+            <AuthPage onAuth={handleAuth} onGuest={handleGuest} />
             <button
               onClick={cancelAuth}
               aria-label="Close"
